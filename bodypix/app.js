@@ -1,4 +1,5 @@
-const tf = require('@tensorflow/tfjs-node');
+const tf = require('@tensorflow/tfjs');
+const webgl = require('./node-webgl');
 const bodyPix = require('@tensorflow-models/body-pix');
 const http = require('http');
 
@@ -18,7 +19,7 @@ const http = require('http');
             chunks.push(chunk);
         });
         req.on('end', async () => {
-            const image = tf.node.decodeImage(Buffer.concat(chunks));
+            const image = webgl.decodeJpeg(Buffer.concat(chunks));
             segmentation = await net.segmentPerson(image, {
                 flipHorizontal: false,
                 internalResolution: 'medium',

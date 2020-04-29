@@ -19,8 +19,8 @@ def get_mask(frame, bodypix_url='http://localhost:13165'):
     return mask
 
 def post_process_mask(mask):
-    mask = cv2.dilate(mask, np.ones((10,10), np.uint8) , iterations=1)
-    mask = cv2.blur(mask.astype(np.float32), (30,30))
+    mask = cv2.dilate(mask, np.ones((10,10), np.uint8), iterations=1)
+    mask = cv2.blur(cv2.UMat(mask.get().astype(np.float32)), (30,30))
     return mask
 
 def shift_image(img, dx, dy):
@@ -60,10 +60,13 @@ def get_frame(cap, background=None, useHologram=False):
         try:
             mask = get_mask(frame)
         except:
-            print("mask request failed, retrying")
+            pass
+
     # post-process mask and frame
+    mask = cv2.UMat(mask)
     mask = post_process_mask(mask)
 
+    frame = cv2.UMat(frame)
     if (background is None):
         background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
 
@@ -71,6 +74,9 @@ def get_frame(cap, background=None, useHologram=False):
         frame = hologram_effect(frame)
 
     # composite the foreground and background
+    frame = frame.get().astype(np.uint8)
+    mask = mask.get().astype(np.float32)
+    background = background.get().astype(np.uint8)
     inv_mask = 1-mask
     for c in range(frame.shape[2]):
         frame[:,:,c] = frame[:,:,c]*mask + background[:,:,c]*inv_mask
@@ -92,7 +98,7 @@ def start(background=None, useHologram=False):
     # load the virtual background
     background_scaled = None
     if (background is not None):
-        background_data = cv2.imread(background)
+        background_data = cv2.UMat(cv2.imread(background))
         background_scaled = cv2.resize(background_data, (width, height))
 
     # frames forever

@@ -7,7 +7,8 @@ setup(
     author='Daniel Llewellyn',
     author_email='diddledan@ubuntu.com',
     description='Fakecam',
-    packages=find_packages(),    
+    packages=find_packages(),
+    data_files=["fakecam/ui/fakecam.glade"],
     install_requires=[
         "numpy==1.18.2",
         "opencv-python==4.2.0.32",
@@ -18,7 +19,7 @@ setup(
     ],
     entry_points={
         'console_scripts':[
-            'fakecamcli=fakecam.main:main',
+            'fakecamcli=fakecam.cli:main',
             'fakecamgui=fakecam.gui:main',
         ],
     },

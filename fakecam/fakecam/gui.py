@@ -9,6 +9,3 @@ def main():
     Gst.init(None)
     MainWindow()
     Gtk.main()
-
-if (__name__ == '__main__'):
-    main()

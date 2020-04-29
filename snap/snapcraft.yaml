@@ -37,8 +37,15 @@ parts:
       - libxrender1
       - python3-gi
 
+  other-progs:
+    plugin: nil
+    stage-packages:
+      - clinfo
+      - mesa-opencl-icd
+      - ocl-icd-libopencl1
+
   cleanup:
-    after: [bodypix, fakecam]  # Make this part run last; list all your other parts here
+    after: [bodypix, fakecam, other-progs]  # Make this part run last; list all your other parts here
     plugin: nil
     build-snaps: [gnome-3-28-1804]  # List all content-snaps you're using here
     override-prime: |
@@ -52,16 +59,42 @@ parts:
       find $SNAPCRAFT_PRIME/usr/share/doc/ -type f -not -name 'copyright' -delete
       find $SNAPCRAFT_PRIME/usr/share -type d -empty -delete
 
+layout:
+  /usr/include/clc:
+    bind: $SNAP/usr/include/clc
+  /usr/lib/clc:
+    bind: $SNAP/usr/lib/clc
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe
+
 apps:
-  fakecam:
-    command: bin/fakecamcli
+  clinfo:
+    command: usr/bin/clinfo
+    extensions: [gnome-3-28]
     plugs:
       - camera
+      - desktop
       - home
       - network
       - network-bind
       - opengl
       - removable-media
+      - wayland
+      - x11
+
+  fakecam:
+    command: bin/fakecamcli
+    extensions: [gnome-3-28]
+    plugs:
+      - camera
+      - desktop
+      - home
+      - network
+      - network-bind
+      - opengl
+      - removable-media
+      - wayland
+      - x11
 
   gui:
     command: bin/fakecamgui
