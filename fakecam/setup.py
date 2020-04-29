@@ -8,7 +8,8 @@ setup(
     author_email='diddledan@ubuntu.com',
     description='Fakecam',
     packages=find_packages(),
-    data_files=["fakecam/ui/fakecam.glade"],
+    package_dir={"fakecam": "fakecam"},
+    package_data={"fakecam": ["ui/fakecam.glade"]},
     install_requires=[
         "numpy==1.18.2",
         "opencv-python==4.2.0.32",

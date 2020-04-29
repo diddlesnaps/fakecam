@@ -19,16 +19,16 @@ Your camera is not accessible. You need to manually run the following:
 The fake cemera device is not accessible. Make sure you have installed and
 activated v4l2loopback-dkms. The module must be configured with the following
 options:
-    devices=1 video_nr=20 card_label="v4l2loopback" exclusive_caps=1
+    devices=1 video_nr=20 card_label="fakecam" exclusive_caps=1
 
 To do this now and get going straight away run:
     modprobe -r v4l2loopback && modprobe v4l2loopback devices=1 \\
-        video_nr=20 card_label="v4l2loopback" exclusive_caps=1
+        video_nr=20 card_label="fakecam" exclusive_caps=1
 
 This can be achieved by editing /etc/modprobe.d/fakecam.conf or
 /etc/modprobe.conf to add the following line:
-    options v4l2loopback devices=1 video_nr=20 \\
-        card_label="v4l2loopback" exclusive_caps=1
+
+options v4l2loopback devices=1 video_nr=20 card_label="fakecam" exclusive_caps=1
 
 Once the configuration is set it will persist across reboots. If you haven't
 run the modprobe commands above then you should now run:
