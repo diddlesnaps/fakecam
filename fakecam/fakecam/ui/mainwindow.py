@@ -16,11 +16,14 @@ config = SafeConfigParser()
 
 class MainWindow():
     p = None
+    p2 = None
     background = None
     useHologram = False
     started = False
     camera = None
     movie_window_xid = None
+
+    cancelTimeout = False
 
     def __init__(self):
         builder = Gtk.Builder()
@@ -37,7 +40,7 @@ class MainWindow():
         }
         builder.connect_signals(handlers)
 
-        if (os.path.isfile(CONFIG_FILE)):
+        if os.path.isfile(CONFIG_FILE):
             config.read(CONFIG_FILE)
 
             if (config.has_section('main')):
@@ -55,7 +58,7 @@ class MainWindow():
                 except NoOptionError:
                     pass
 
-        if (not config.has_section('main')):
+        if not config.has_section('main'):
             config.add_section('main')
 
         self.builder = builder
@@ -88,16 +91,16 @@ The fakecam app will now close.
 The fake cemera device is not accessible. Make sure you have installed and
 activated v4l2loopback-dkms. The module must be configured with the following
 options:
-    devices=1 video_nr=20 card_label="v4l2loopback" exclusive_caps=1
+    devices=1 video_nr=20 card_label="fakecam" exclusive_caps=1
 
 To do this now and get going straight away run:
     modprobe -r v4l2loopback && modprobe v4l2loopback devices=1 \\
-        video_nr=20 card_label="v4l2loopback" exclusive_caps=1
+        video_nr=20 card_label="fakecam" exclusive_caps=1
 
 This can be achieved by editing /etc/modprobe.d/fakecam.conf or
 /etc/modprobe.conf to add the following line:
     options v4l2loopback devices=1 video_nr=20 \\
-        card_label="v4l2loopback" exclusive_caps=1
+        card_label="fakecam" exclusive_caps=1
 
 Once the configuration is set it will persist across reboots. If you haven't
 run the modprobe commands above then you should now run:
@@ -115,8 +118,8 @@ The fakecam app will now close.
             self.stop()
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
-            print("Error: %s" % err, debug)
-            self.stop()
+            if not cancelTimeout:
+                GLib.timeout_add_seconds(1, self.try_start_viewer)
 
     def on_sync_message(self, bus, message):
         struct = message.get_structure()
@@ -139,11 +142,15 @@ The fakecam app will now close.
         config.set('main', 'background', self.background)
 
     def setup_subprocess(self):
-        if (self.p is not None):
+        if self.p is not None:
             self.p.terminate()
             self.p.join()
+        if self.p2 is not None:
+            self.p2.terminate()
+            self.p2.join()
 
         self.p = Process(target=capture.start, kwargs={'background': self.background, 'useHologram': self.useHologram})
+        self.p2 = Process(target=capture.start_bodypix)
 
     def on_hologram_toggled(self, widget, *args):
         self.useHologram = widget.get_active()
@@ -164,14 +171,20 @@ The fakecam app will now close.
             self.started = True
 
     def start(self):
+        self.cancelTimeout = False
         movie_window = self.builder.get_object('movie_window')
         self.movie_window_xid = movie_window.get_property('window').get_xid()
         self.setup_subprocess()
         self.p.start()
-        time.sleep(2)
+        self.p2.start()
+        GLib.timeout_add_seconds(5, self.try_start_viewer)
+
+    def try_start_viewer(self):
         self.camera.set_state(Gst.State.PLAYING)
+        return False
 
     def stop(self, *args):
+        self.cancelTimeout = True
         if (self.p is not None):
             self.camera.set_state(Gst.State.NULL)
             self.p.terminate()
