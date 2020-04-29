@@ -9,7 +9,7 @@ import os
 from configparser import SafeConfigParser, NoOptionError
 
 import fakecam.capture as capture
-
+from fakecam.ui import gstreamer
 
 CONFIG_FILE = os.path.expanduser('~/config.ini')
 config = SafeConfigParser()
@@ -18,10 +18,15 @@ class MainWindow():
     p                = None
     p2               = None
     camera           = None
+    builder          = None
     started          = False
     cancelTimeout    = False
 
-    movie_window_xid = None
+    # movie_window_xid = None
+
+    av_widget        = None
+    av_sink          = None
+    av_src           = None
 
     background       = None
     useHologram      = False
@@ -64,15 +69,6 @@ class MainWindow():
 
         self.builder = builder
 
-        self.camera = Gst.parse_launch ("v4l2src device=/dev/video20 ! videoconvert ! autovideosink")
-        bus = self.camera.get_bus()
-        bus.add_signal_watch()
-        bus.enable_sync_message_emission()
-        bus.connect("message", self.on_message)
-        bus.connect("sync-message::element", self.on_sync_message)
-
-        window.show_all()
-
         if not os.access('/dev/video0', os.R_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
                 Gtk.ButtonsType.OK, "Camera device not accessible")
@@ -112,6 +108,8 @@ The fakecam app will now close.
             dialog.run()
             self.on_quit()
 
+        window.show_all()
+
     def on_message(self, bus, message):
         t = message.type
         if t == Gst.MessageType.EOS:
@@ -120,18 +118,20 @@ The fakecam app will now close.
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
             if not self.cancelTimeout:
+                print("Error: %s. Will retry in 1 second" % err, debug)
+                self.camera.set_state(Gst.State.NULL)
                 GLib.timeout_add_seconds(1, self.try_start_viewer)
 
-    def on_sync_message(self, bus, message):
-        struct = message.get_structure()
-        if not struct:
-            return
-        message_name = struct.get_name()
-        if message_name == "prepare-window-handle":
-            # Assign the viewport
-            imagesink = message.src
-            GLib.idle_add(imagesink.set_property, "force-aspect-ratio", True)
-            GLib.idle_add(imagesink.set_window_handle, self.movie_window_xid)
+    # def on_sync_message(self, bus, message):
+    #     struct = message.get_structure()
+    #     if not struct:
+    #         return
+    #     message_name = struct.get_name()
+    #     if message_name == "prepare-window-handle":
+    #         # Assign the viewport
+    #         imagesink = message.src
+    #         GLib.idle_add(imagesink.set_property, "force-aspect-ratio", True)
+    #         GLib.idle_add(imagesink.set_window_handle, self.movie_window_xid)
 
     def on_reset_background(self, widget):
         self.background = None
@@ -146,6 +146,10 @@ The fakecam app will now close.
         if self.p is not None:
             self.p.terminate()
             self.p.join()
+        if self.p2 is not None:
+            self.p2.terminate()
+            self.p2.join()
+
         if self.p2 is not None:
             self.p2.terminate()
             self.p2.join()
@@ -174,21 +178,65 @@ The fakecam app will now close.
             self.started = True
 
     def start(self):
-        self.cancelTimeout = False
-        movie_window = self.builder.get_object('movie_window')
-        self.movie_window_xid = movie_window.get_property('window').get_xid()
+        # movie_window = self.builder.get_object('movie_window')
+        # self.movie_window_xid = movie_window.get_property('window').get_xid()
         self.setup_subprocess()
-        self.p.start()
         self.p2.start()
+        self.p.start()
         GLib.timeout_add_seconds(5, self.try_start_viewer)
-
+    
     def try_start_viewer(self):
+        window = self.builder.get_object("MainWindow")
+
+        sink, widget, name = gstreamer.create_gtk_widget()
+        if sink is None:
+            print("Could not set up gstreamer.")
+            return False
+
+        if self.camera is None:
+            self.camera = Gst.Pipeline.new('camera-pipeline')
+        else:
+            self.camera.set_state(Gst.State.NULL)
+
+        self.camera.add(sink)
+        self.av_sink = sink
+
+        viewport = self.builder.get_object('camera_viewport')
+        if self.av_widget is not None:
+            viewport.remove(self.av_widget)
+
+        viewport.add(widget)
+        self.av_widget = widget
+        viewport.show_all()
+
+        try:
+            self.av_src = Gst.parse_bin_from_description('v4l2src device=/dev/video20', True)
+        except GLib.Error:
+            print("Error setting up video source")
+            self.on_quit()
+
+        self.camera.add(self.av_src)
+        self.av_src.link(self.av_sink)
         self.camera.set_state(Gst.State.PLAYING)
         return False
 
     def stop(self, *args):
         self.cancelTimeout = True
-        self.camera.set_state(Gst.State.NULL)
+        viewport = self.builder.get_object('camera_viewport')
+        if self.camera is not None:
+            self.camera.set_state(Gst.State.NULL)
+        if self.av_src is not None:
+            self.camera.remove(self.av_src)
+            self.av_src = None
+        if self.av_sink is not None:
+            self.camera.remove(self.av_sink)
+            self.av_sink = None
+        if self.av_widget is not None:
+            self.av_widget.hide()
+            viewport.remove(self.av_widget)
+            self.av_widget = None
+        self.camera = None
+
         if self.p is not None:
             self.p.terminate()
             self.p.join()
