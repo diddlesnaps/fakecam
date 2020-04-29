@@ -103,6 +103,9 @@ apps:
   gui:
     command: bin/fakecamgui
     extensions: [gnome-3-28]
+    environment:
+      GDK_BACKEND: x11
+      DISABLE_WAYLAND: 1
     plugs:
       - camera
       - desktop
