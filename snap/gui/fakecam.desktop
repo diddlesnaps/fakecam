@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Fakecam
+Comment=Virtual Backgrounds for your video conferences and streaming presentations
+Categories=video
+Icon=camera-photo
+Exec=fakecam.gui
+Terminal=false
