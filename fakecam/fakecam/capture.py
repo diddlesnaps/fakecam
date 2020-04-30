@@ -38,7 +38,7 @@ def shift_image(img, dx, dy):
 
 def hologram_effect(img):
     # add a blue tint
-    holo = cv2.applyColorMap(img, cv2.COLORMAP_WINTER)
+    holo = cv2.applyColorMap(img.get(), cv2.COLORMAP_WINTER)
     # add a halftone effect
     bandLength, bandGap = 2, 3
     for y in range(holo.shape[0]):
