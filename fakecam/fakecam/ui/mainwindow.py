@@ -118,7 +118,7 @@ The fakecam app will now close.
             self.stop()
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
-            if not cancelTimeout:
+            if not self.cancelTimeout:
                 GLib.timeout_add_seconds(1, self.try_start_viewer)
 
     def on_sync_message(self, bus, message):
