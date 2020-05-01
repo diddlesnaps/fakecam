@@ -29,6 +29,7 @@ parts:
     build-packages:
       - libgirepository1.0-dev
     stage-packages:
+      - freeglut3
       - gir1.2-glib-2.0
       - gir1.2-gst-plugins-base-1.0
       - gir1.2-gstreamer-1.0
@@ -37,7 +38,10 @@ parts:
       - gstreamer1.0-gtk3
       - gstreamer1.0-plugins-good
       - libgirepository-1.0-1
+      - libglu1-mesa
+      - libgpm2
       - libice6
+      - libslang2
       - libsm6
       - libx11-6
       - libxext6

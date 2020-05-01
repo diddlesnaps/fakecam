@@ -15,15 +15,16 @@ CONFIG_FILE = os.path.expanduser('~/config.ini')
 config = SafeConfigParser()
 
 class MainWindow():
-    p = None
-    p2 = None
-    background = None
-    useHologram = False
-    started = False
-    camera = None
+    p                = None
+    p2               = None
+    camera           = None
+    started          = False
+    cancelTimeout    = False
+
     movie_window_xid = None
 
-    cancelTimeout = False
+    background       = None
+    useHologram      = False
 
     def __init__(self):
         builder = Gtk.Builder()
@@ -161,11 +162,13 @@ The fakecam app will now close.
             self.stop()
             self.builder.get_object('hologram_toggle').set_sensitive(True)
             self.builder.get_object('background_chooser').set_sensitive(True)
+            self.builder.get_object('reset_button').set_sensitive(True)
             widget.set_label("Start Fakecam")
             self.started = False
         else:
             self.builder.get_object('hologram_toggle').set_sensitive(False)
             self.builder.get_object('background_chooser').set_sensitive(False)
+            self.builder.get_object('reset_button').set_sensitive(False)
             widget.set_label("Stop Fakecam")
             self.start()
             self.started = True
@@ -185,11 +188,15 @@ The fakecam app will now close.
 
     def stop(self, *args):
         self.cancelTimeout = True
-        if (self.p is not None):
-            self.camera.set_state(Gst.State.NULL)
+        self.camera.set_state(Gst.State.NULL)
+        if self.p is not None:
             self.p.terminate()
             self.p.join()
             self.p = None
+        if self.p2 is not None:
+            self.p2.terminate()
+            self.p2.join()
+            self.p2 = None
 
     def on_about(self, *args):
         dlg = self.builder.get_object('AboutDialog')

@@ -109,4 +109,10 @@ def start(background=None, useHologram=False):
         fake.schedule_frame(frame)
 
 def start_bodypix():
-    subprocess.run(['node', os.path.join(os.environ['SNAP'], 'app.js')])
+    appjsdir = None
+    if os.environ['SNAP']:
+        appjsdir = os.environ['SNAP']
+    else:
+        project = os.path.dirname(os.path.dirname(__file__))
+        appjsdir = os.path.join(project, 'bodypix')
+    os.execlp('node', 'node', os.path.join(os.environ['SNAP'], 'app.js'))

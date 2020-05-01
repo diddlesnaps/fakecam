@@ -183,7 +183,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="reset_button">
                 <property name="label" translatable="yes">_Reset</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
