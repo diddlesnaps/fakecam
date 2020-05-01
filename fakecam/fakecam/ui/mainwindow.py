@@ -17,7 +17,7 @@ config = SafeConfigParser()
 class MainWindow():
     p                = None
     p2               = None
-    camera           = None
+    pipeline         = None
     builder          = None
     started          = False
     cancelTimeout    = False
@@ -119,7 +119,7 @@ The fakecam app will now close.
             err, debug = message.parse_error()
             if not self.cancelTimeout:
                 print("Error: %s. Will retry in 1 second" % err, debug)
-                self.camera.set_state(Gst.State.NULL)
+                self.pipeline.set_state(Gst.State.NULL)
                 GLib.timeout_add_seconds(1, self.try_start_viewer)
 
     # def on_sync_message(self, bus, message):
@@ -193,14 +193,6 @@ The fakecam app will now close.
             print("Could not set up gstreamer.")
             return False
 
-        if self.camera is None:
-            self.camera = Gst.Pipeline.new('camera-pipeline')
-        else:
-            self.camera.set_state(Gst.State.NULL)
-
-        self.camera.add(sink)
-        self.av_sink = sink
-
         viewport = self.builder.get_object('camera_viewport')
         if self.av_widget is not None:
             viewport.remove(self.av_widget)
@@ -210,32 +202,49 @@ The fakecam app will now close.
         viewport.show_all()
 
         try:
-            self.av_src = Gst.parse_bin_from_description('v4l2src device=/dev/video20', True)
+            pipeline = self.pipeline
+            if pipeline is None:
+                pipeline = Gst.Pipeline()
+            else:
+                pipeline.set_state(Gst.State.NULL)
+
+            # src = Gst.parse_launch('v4l2src device=/dev/video20 ! video/x-raw ! videoconvert')
+            src = Gst.ElementFactory.make('v4l2src')
+            src.set_property('device', '/dev/video20')
+            conv = Gst.ElementFactory.make('videoconvert')
+            caps = Gst.caps_from_string('video/x-raw')
+            pipeline.add(src)
+            pipeline.add(conv)
+            pipeline.add(sink)
+            src.link_filtered(conv, caps)
+            conv.link(sink)
+            self.pipeline = pipeline
+            self.av_src = src
+            self.av_sink = sink
         except GLib.Error:
             print("Error setting up video source")
             self.on_quit()
 
-        self.camera.add(self.av_src)
-        self.av_src.link(self.av_sink)
-        self.camera.set_state(Gst.State.PLAYING)
+        self.pipeline.set_state(Gst.State.PLAYING)
         return False
 
     def stop(self, *args):
         self.cancelTimeout = True
         viewport = self.builder.get_object('camera_viewport')
-        if self.camera is not None:
-            self.camera.set_state(Gst.State.NULL)
+        if self.pipeline is not None:
+            self.pipeline.set_state(Gst.State.NULL)
         if self.av_src is not None:
-            self.camera.remove(self.av_src)
+            self.pipeline.remove(self.av_src)
             self.av_src = None
-        if self.av_sink is not None:
-            self.camera.remove(self.av_sink)
-            self.av_sink = None
         if self.av_widget is not None:
-            self.av_widget.hide()
+            self.av_widget.set_visible(False)
             viewport.remove(self.av_widget)
             self.av_widget = None
-        self.camera = None
+        if self.av_sink is not None:
+            self.pipeline.remove(self.av_sink)
+            self.av_sink = None
+
+        self.pipeline = None
 
         if self.p is not None:
             self.p.terminate()
