@@ -34,6 +34,7 @@ class MainWindow:
 
     background = None
     use_hologram = False
+    use_mirror = False
 
     def __init__(self):
         builder = Gtk.Builder()
@@ -46,6 +47,7 @@ class MainWindow:
             "onSelectedBackground": self.on_selected_background,
             "onResetBackground": self.on_reset_background,
             "onHologramToggled": self.on_hologram_toggled,
+            "onMirrorToggled": self.on_mirror_toggled,
             "onStartButtonClicked": self.on_startbutton_clicked,
         }
         builder.connect_signals(handlers)
@@ -133,7 +135,11 @@ class MainWindow:
 
     def update_worker(self):
         if self.started is True:
-            self.queue.put_nowait(dict(background=self.background, hologram=self.use_hologram))
+            self.queue.put_nowait(QueueDict(
+                background=self.background,
+                hologram=self.use_hologram,
+                mirror=self.use_mirror,
+            ))
 
     def on_reset_background(self, widget):
         self.background = None
@@ -149,6 +155,11 @@ class MainWindow:
     def on_hologram_toggled(self, widget, *args):
         self.use_hologram = widget.get_active()
         config.set("main", "hologram", str(self.use_hologram))
+        self.update_worker()
+
+    def on_mirror_toggled(self, widget, *args):
+        self.use_mirror = widget.get_active()
+        config.set("main", "mirror", str(self.use_mirror))
         self.update_worker()
 
     def on_startbutton_clicked(self, widget):

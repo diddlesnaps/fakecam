@@ -94,8 +94,8 @@ def get_frame(cap: object, background: object = None, use_hologram: bool = False
     return frame
 
 
-def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0",
-          background: str = None, use_hologram: bool = False, resolution: str = None):
+def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", background: str = None,
+          use_hologram: bool = False, use_mirror: bool = False, resolution: str = None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     # setup access to the *real* webcam
@@ -131,6 +131,8 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0",
     # frames forever
     while True:
         frame = get_frame(cap, background=background_scaled, use_hologram=use_hologram)
+        if use_mirror is True:
+            frame = cv2.flip(frame, 1)
         # fake webcam expects RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         fake.schedule_frame(frame)
@@ -145,6 +147,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0",
                 background_scaled = cv2.resize(background_data, (width, height))
 
             use_hologram = data["hologram"]
+            use_mirror = data["mirror"]
 
 def start_bodypix():
     appjsdir = None

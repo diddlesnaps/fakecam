@@ -14,11 +14,12 @@ def usage():
 def main():
     background = None
     use_hologram = False
+    use_mirror = False
     camera = "/dev/video0"
     resolution = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:r:b:m", ["input=", "resolution=", "background=", "hologram"])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:r:b:mg", ["input=", "resolution=", "background=", "mirror", "hologram"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -34,7 +35,9 @@ def main():
             resolution = (int(res[0]), int(res[1]))
         elif opt in ("-b", "--background"):
             background = arg
-        elif opt in ("-m", "--hologram"):
+        elif opt in ("-m", "--mirror"):
+            use_mirror = True
+        elif opt in ("-g", "--hologram"):
             use_hologram = True
 
     if not os.access(camera, os.R_OK):
@@ -54,7 +57,13 @@ def main():
         print(lang.USING_BACKGROUND_BLUR)
         background = None
 
-    p = multiprocessing.Process(target=capture.start, kwargs=dict(background=background, use_hologram=use_hologram, resolution=resolution))
+    args = {
+        background: background,
+        use_hologram: use_hologram,
+        use_mirror: use_mirror,
+        resolution: resolution
+    }
+    p = multiprocessing.Process(target=capture.start, kwargs=args)
     p2 = multiprocessing.Process(target=capture.start_bodypix)
     try:
         p2.start()
