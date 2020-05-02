@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 from gi.repository import Gst
 from gi.repository import Gtk
 
+
 def create_gtk_widget() -> Tuple[Optional[Gst.Element], Optional[Gtk.Widget], Optional[str]]:
     # gtkglsink = Gst.ElementFactory.make('gtkglsink', None)
     # if gtkglsink is not None:

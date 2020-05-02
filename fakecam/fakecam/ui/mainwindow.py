@@ -1,47 +1,47 @@
 import gi
+
 gi.require_version("Gtk", "3.0")
 gi.require_version('Gst', '1.0')
-gi.require_version('GstVideo', '1.0')
-from gi.repository import GLib, Gtk, Gst, GdkX11, GstVideo
+from gi.repository import GLib, Gtk, Gst
 from multiprocessing import Process
-import time
 import os
 from configparser import SafeConfigParser, NoOptionError
 
-import fakecam.capture as capture
-from fakecam.ui import gstreamer
+from fakecam.capture import start, start_bodypix
+from . import gstreamer
 
 CONFIG_FILE = os.path.expanduser('~/config.ini')
 config = SafeConfigParser()
 
-class MainWindow():
-    p                = None
-    p2               = None
-    pipeline         = None
-    builder          = None
-    started          = False
-    cancelTimeout    = False
+
+class MainWindow:
+    p = None
+    p2 = None
+    pipeline = None
+    builder = None
+    started = False
+    cancel_timeout = False
 
     # movie_window_xid = None
 
-    av_widget        = None
-    av_sink          = None
-    av_src           = None
+    av_widget = None
+    av_sink = None
+    av_src = None
 
-    background       = None
-    useHologram      = False
+    background = None
+    use_hologram = False
 
     def __init__(self):
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(os.path.dirname(__file__), "fakecam.glade"))
         window = builder.get_object("MainWindow")
- 
+
         handlers = {
-            "onDestroy":            self.on_quit,
-            "onAbout":              self.on_about,
+            "onDestroy": self.on_quit,
+            "onAbout": self.on_about,
             "onSelectedBackground": self.on_selected_background,
-            "onResetBackground":    self.on_reset_background,
-            "onHologramToggled":    self.on_hologram_toggled,
+            "onResetBackground": self.on_reset_background,
+            "onHologramToggled": self.on_hologram_toggled,
             "onStartButtonClicked": self.on_startbutton_clicked,
         }
         builder.connect_signals(handlers)
@@ -49,16 +49,16 @@ class MainWindow():
         if os.path.isfile(CONFIG_FILE):
             config.read(CONFIG_FILE)
 
-            if (config.has_section('main')):
+            if config.has_section('main'):
                 try:
-                    self.useHologram = config.getboolean('main', 'hologram')
-                    builder.get_object('hologram_toggle').set_active(self.useHologram)
+                    self.use_hologram = config.getboolean('main', 'hologram')
+                    builder.get_object('hologram_toggle').set_active(self.use_hologram)
                 except NoOptionError:
                     pass
 
                 try:
                     background = config.get('main', 'background')
-                    if (os.path.isfile(background)):
+                    if os.path.isfile(background):
                         self.background = background
                         builder.get_object('background_chooser').set_filename(background)
                 except NoOptionError:
@@ -71,7 +71,7 @@ class MainWindow():
 
         if not os.access('/dev/video0', os.R_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
-                Gtk.ButtonsType.OK, "Camera device not accessible")
+                                       Gtk.ButtonsType.OK, "Camera device not accessible")
             dialog.format_secondary_text("""
 Your camera is not accessible. You need to manually run the following:
     snap connect fakecam:camera
@@ -83,7 +83,7 @@ The fakecam app will now close.
 
         if not os.access('/dev/video20', os.W_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
-                Gtk.ButtonsType.OK, "Fake camera device not accessible")
+                                       Gtk.ButtonsType.OK, "Fake camera device not accessible")
             dialog.format_secondary_text("""
 The fake cemera device is not accessible. Make sure you have installed and
 activated v4l2loopback-dkms. The module must be configured with the following
@@ -117,7 +117,7 @@ The fakecam app will now close.
             self.stop()
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
-            if not self.cancelTimeout:
+            if not self.cancel_timeout:
                 print("Error: %s. Will retry in 1 second" % err, debug)
                 self.pipeline.set_state(Gst.State.NULL)
                 GLib.timeout_add_seconds(1, self.try_start_viewer)
@@ -154,15 +154,15 @@ The fakecam app will now close.
             self.p2.terminate()
             self.p2.join()
 
-        self.p = Process(target=capture.start, kwargs={'background': self.background, 'useHologram': self.useHologram})
-        self.p2 = Process(target=capture.start_bodypix)
+        self.p = Process(target=start, kwargs=dict(background=self.background, use_hologram=self.use_hologram))
+        self.p2 = Process(target=start_bodypix)
 
     def on_hologram_toggled(self, widget, *args):
-        self.useHologram = widget.get_active()
-        config.set('main', 'hologram', str(self.useHologram))
+        self.use_hologram = widget.get_active()
+        config.set('main', 'hologram', str(self.use_hologram))
 
     def on_startbutton_clicked(self, widget):
-        if (self.started):
+        if self.started:
             self.stop()
             self.builder.get_object('hologram_toggle').set_sensitive(True)
             self.builder.get_object('background_chooser').set_sensitive(True)
@@ -184,7 +184,7 @@ The fakecam app will now close.
         self.p2.start()
         self.p.start()
         GLib.timeout_add_seconds(5, self.try_start_viewer)
-    
+
     def try_start_viewer(self):
         window = self.builder.get_object("MainWindow")
 
@@ -229,7 +229,7 @@ The fakecam app will now close.
         return False
 
     def stop(self, *args):
-        self.cancelTimeout = True
+        self.cancel_timeout = True
         viewport = self.builder.get_object('camera_viewport')
         if self.pipeline is not None:
             self.pipeline.set_state(Gst.State.NULL)
