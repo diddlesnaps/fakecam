@@ -19,7 +19,7 @@ setup(
         "PyGObject==3.36.0",
     ],
     entry_points={
-        'console_scripts':[
+        'console_scripts': [
             'fakecamcli=fakecam.cli:main',
             'fakecamgui=fakecam.gui:main',
         ],

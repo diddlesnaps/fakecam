@@ -1,4 +1,4 @@
-import fakecam.gui as fakecam
+from fakecam.gui import main
 
-if (__name__ == '__main__'):
-    fakecam.main()
+if __name__ == "__main__":
+    main()

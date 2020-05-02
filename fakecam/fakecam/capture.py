@@ -1,11 +1,14 @@
 import os
 import signal
-import sys
+from typing import Type
 
 import cv2
 import numpy as np
 import pyfakewebcam
 import requests
+from multiprocessing import Queue
+
+from .types import QueueDict
 
 FHD = (1080, 1920)
 HD = (720, 1280)
@@ -17,7 +20,7 @@ def get_mask(frame, bodypix_url='http://localhost:13165'):
     r = requests.post(
         url=bodypix_url,
         data=data.tobytes(),
-        headers={'Content-Type': 'application/octet-stream'})
+        headers={"Content-Type": "application/octet-stream"})
     mask = np.frombuffer(r.content, dtype=np.uint8)
     mask = mask.reshape((frame.shape[0], frame.shape[1]))
     return mask
@@ -59,7 +62,7 @@ def hologram_effect(img):
     return out
 
 
-def get_frame(cap, background=None, use_hologram=False):
+def get_frame(cap: object, background: object = None, use_hologram: bool = False) -> object:
     _ret_, frame = cap.read()
     # fetch the mask with retries (the app needs to warmup and we're lazy)
     # e v e n t u a l l y c o n s i s t e n t
@@ -91,7 +94,8 @@ def get_frame(cap, background=None, use_hologram=False):
     return frame
 
 
-def start(camera='/dev/video0', background=None, use_hologram=False, resolution=None):
+def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0",
+          background: str = None, use_hologram: bool = False, resolution: str = None):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     # setup access to the *real* webcam
@@ -116,7 +120,7 @@ def start(camera='/dev/video0', background=None, use_hologram=False, resolution=
     #         break
 
     # setup the fake camera
-    fake = pyfakewebcam.FakeWebcam('/dev/video20', width, height)
+    fake = pyfakewebcam.FakeWebcam("/dev/video20", width, height)
 
     # load the virtual background
     background_scaled = None
@@ -130,13 +134,23 @@ def start(camera='/dev/video0', background=None, use_hologram=False, resolution=
         # fake webcam expects RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         fake.schedule_frame(frame)
+        if queue is not None and not queue.empty():
+            data = queue.get(False)
 
+            if data["background"] is None:
+                background_scaled = None
+            else:
+                background = data["background"]
+                background_data = cv2.UMat(cv2.imread(background))
+                background_scaled = cv2.resize(background_data, (width, height))
+
+            use_hologram = data["hologram"]
 
 def start_bodypix():
     appjsdir = None
-    if os.environ['SNAP']:
-        appjsdir = os.environ['SNAP']
+    if os.environ["SNAP"]:
+        appjsdir = os.environ["SNAP"]
     else:
         project = os.path.dirname(os.path.dirname(__file__))
-        appjsdir = os.path.join(project, 'bodypix')
-    os.execlp('node', 'node', os.path.join(os.environ['SNAP'], 'app.js'))
+        appjsdir = os.path.join(project, "bodypix")
+    os.execlp("node", "node", os.path.join(os.environ["SNAP"], "app.js"))

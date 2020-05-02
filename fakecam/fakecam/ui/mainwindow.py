@@ -1,22 +1,26 @@
+import configparser
+import multiprocessing
+from multiprocessing.queues import Queue
+
 import gi
+import os, sys
+
+from . import gstreamer
+from .. import capture, lang
+from ..types import QueueDict
 
 gi.require_version("Gtk", "3.0")
-gi.require_version('Gst', '1.0')
+gi.require_version("Gst", "1.0")
 from gi.repository import GLib, Gtk, Gst
-from multiprocessing import Process
-import os
-from configparser import SafeConfigParser, NoOptionError
 
-from fakecam.capture import start, start_bodypix
-from . import gstreamer
-
-CONFIG_FILE = os.path.expanduser('~/config.ini')
-config = SafeConfigParser()
+CONFIG_FILE = os.path.expanduser("~/config.ini")
+config = configparser.SafeConfigParser()
 
 
 class MainWindow:
     p = None
     p2 = None
+    queue: "Queue[QueueDict]" = multiprocessing.Queue()
     pipeline = None
     builder = None
     started = False
@@ -49,66 +53,43 @@ class MainWindow:
         if os.path.isfile(CONFIG_FILE):
             config.read(CONFIG_FILE)
 
-            if config.has_section('main'):
+            if config.has_section("main"):
                 try:
-                    self.use_hologram = config.getboolean('main', 'hologram')
-                    builder.get_object('hologram_toggle').set_active(self.use_hologram)
-                except NoOptionError:
+                    self.use_hologram = config.getboolean("main", "hologram")
+                    builder.get_object("hologram_toggle").set_active(self.use_hologram)
+                except configparser.NoOptionError:
                     pass
 
                 try:
-                    background = config.get('main', 'background')
+                    background = config.get("main", "background")
                     if os.path.isfile(background):
                         self.background = background
-                        builder.get_object('background_chooser').set_filename(background)
-                except NoOptionError:
+                        builder.get_object("background_chooser").set_filename(background)
+                except configparser.NoOptionError:
                     pass
 
-        if not config.has_section('main'):
-            config.add_section('main')
+        if not config.has_section("main"):
+            config.add_section("main")
 
         self.builder = builder
 
-        if not os.access('/dev/video0', os.R_OK):
+        if not os.access("/dev/video0", os.R_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
                                        Gtk.ButtonsType.OK, "Camera device not accessible")
-            dialog.format_secondary_text("""
-Your camera is not accessible. You need to manually run the following:
-    snap connect fakecam:camera
-
-The fakecam app will now close.
-""")
+            dialog.format_secondary_text(lang.CONNECT_INTERFACE + "\n\nThe fakecam app will now close.")
             dialog.run()
+            dialog.destroy()
             self.on_quit()
-
-        if not os.access('/dev/video20', os.W_OK):
+            sys.exit(1)
+        elif not os.access("/dev/video20", os.W_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
                                        Gtk.ButtonsType.OK, "Fake camera device not accessible")
-            dialog.format_secondary_text("""
-The fake cemera device is not accessible. Make sure you have installed and
-activated v4l2loopback-dkms. The module must be configured with the following
-options:
-    devices=1 video_nr=20 card_label="fakecam" exclusive_caps=1
-
-To do this now and get going straight away run:
-    modprobe -r v4l2loopback && modprobe v4l2loopback devices=1 \\
-        video_nr=20 card_label="fakecam" exclusive_caps=1
-
-This can be achieved by editing /etc/modprobe.d/fakecam.conf or
-/etc/modprobe.conf to add the following line:
-    options v4l2loopback devices=1 video_nr=20 \\
-        card_label="fakecam" exclusive_caps=1
-
-Once the configuration is set it will persist across reboots. If you haven't
-run the modprobe commands above then you should now run:
-    modprobe -r v4l2loopback && modprobe v4l2loopback
-
-The fakecam app will now close.
-""")
+            dialog.format_secondary_text(lang.INSTRUCTIONS)
             dialog.run()
-            self.on_quit()
-
-        window.show_all()
+            dialog.destroy()
+            sys.exit(1)
+        else:
+            window.show_all()
 
     def on_message(self, bus, message):
         t = message.type
@@ -118,7 +99,7 @@ The fakecam app will now close.
         elif t == Gst.MessageType.ERROR:
             err, debug = message.parse_error()
             if not self.cancel_timeout:
-                print("Error: %s. Will retry in 1 second" % err, debug)
+                print("Error: {error}. Will retry in 1 second".format(error=err), debug)
                 self.pipeline.set_state(Gst.State.NULL)
                 GLib.timeout_add_seconds(1, self.try_start_viewer)
 
@@ -133,15 +114,6 @@ The fakecam app will now close.
     #         GLib.idle_add(imagesink.set_property, "force-aspect-ratio", True)
     #         GLib.idle_add(imagesink.set_window_handle, self.movie_window_xid)
 
-    def on_reset_background(self, widget):
-        self.background = None
-        self.builder.get_object('background_chooser').unselect_all()
-        config.remove_option('main', 'background')
-
-    def on_selected_background(self, widget):
-        self.background = widget.get_filename()
-        config.set('main', 'background', self.background)
-
     def setup_subprocess(self):
         if self.p is not None:
             self.p.terminate()
@@ -154,25 +126,43 @@ The fakecam app will now close.
             self.p2.terminate()
             self.p2.join()
 
-        self.p = Process(target=start, kwargs=dict(background=self.background, use_hologram=self.use_hologram))
-        self.p2 = Process(target=start_bodypix)
+        self.p = multiprocessing.Process(target=capture.start, kwargs={'background': self.background,
+                                                                       'use_hologram': self.use_hologram,
+                                                                       'queue': self.queue})
+        self.p2 = multiprocessing.Process(target=capture.start_bodypix)
+
+    def update_worker(self):
+        if self.started is True:
+            self.queue.put_nowait(dict(background=self.background, hologram=self.use_hologram))
+
+    def on_reset_background(self, widget):
+        self.background = None
+        self.builder.get_object("background_chooser").unselect_all()
+        config.remove_option("main", "background")
+        self.update_worker()
+
+    def on_selected_background(self, widget):
+        self.background = widget.get_filename()
+        config.set("main", "background", self.background)
+        self.update_worker()
 
     def on_hologram_toggled(self, widget, *args):
         self.use_hologram = widget.get_active()
-        config.set('main', 'hologram', str(self.use_hologram))
+        config.set("main", "hologram", str(self.use_hologram))
+        self.update_worker()
 
     def on_startbutton_clicked(self, widget):
         if self.started:
             self.stop()
-            self.builder.get_object('hologram_toggle').set_sensitive(True)
-            self.builder.get_object('background_chooser').set_sensitive(True)
-            self.builder.get_object('reset_button').set_sensitive(True)
+            # self.builder.get_object("hologram_toggle").set_sensitive(True)
+            # self.builder.get_object("background_chooser").set_sensitive(True)
+            # self.builder.get_object("reset_button").set_sensitive(True)
             widget.set_label("Start Fakecam")
             self.started = False
         else:
-            self.builder.get_object('hologram_toggle').set_sensitive(False)
-            self.builder.get_object('background_chooser').set_sensitive(False)
-            self.builder.get_object('reset_button').set_sensitive(False)
+            # self.builder.get_object("hologram_toggle").set_sensitive(False)
+            # self.builder.get_object("background_chooser").set_sensitive(False)
+            # self.builder.get_object("reset_button").set_sensitive(False)
             widget.set_label("Stop Fakecam")
             self.start()
             self.started = True
@@ -193,7 +183,7 @@ The fakecam app will now close.
             print("Could not set up gstreamer.")
             return False
 
-        viewport = self.builder.get_object('camera_viewport')
+        viewport = self.builder.get_object("camera_viewport")
         if self.av_widget is not None:
             viewport.remove(self.av_widget)
 
@@ -209,10 +199,10 @@ The fakecam app will now close.
                 pipeline.set_state(Gst.State.NULL)
 
             # src = Gst.parse_launch('v4l2src device=/dev/video20 ! video/x-raw ! videoconvert')
-            src = Gst.ElementFactory.make('v4l2src')
-            src.set_property('device', '/dev/video20')
-            conv = Gst.ElementFactory.make('videoconvert')
-            caps = Gst.caps_from_string('video/x-raw')
+            src = Gst.ElementFactory.make("v4l2src")
+            src.set_property("device", "/dev/video20")
+            conv = Gst.ElementFactory.make("videoconvert")
+            caps = Gst.caps_from_string("video/x-raw")
             pipeline.add(src)
             pipeline.add(conv)
             pipeline.add(sink)
@@ -230,7 +220,7 @@ The fakecam app will now close.
 
     def stop(self, *args):
         self.cancel_timeout = True
-        viewport = self.builder.get_object('camera_viewport')
+        viewport = self.builder.get_object("camera_viewport")
         if self.pipeline is not None:
             self.pipeline.set_state(Gst.State.NULL)
         if self.av_src is not None:
@@ -256,12 +246,12 @@ The fakecam app will now close.
             self.p2 = None
 
     def on_about(self, *args):
-        dlg = self.builder.get_object('AboutDialog')
+        dlg = self.builder.get_object("AboutDialog")
         dlg.run()
         dlg.hide()
 
     def on_quit(self, *args):
         self.stop()
-        with open(CONFIG_FILE, 'w') as f:
+        with open(CONFIG_FILE, "w") as f:
             config.write(f)
         Gtk.main_quit()

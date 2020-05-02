@@ -1,4 +1,4 @@
-import fakecam.cli as fakecam
+from fakecam.cli import main
 
-if (__name__ == '__main__'):
-    fakecam.main()
+if __name__ == "__main__":
+    main()
