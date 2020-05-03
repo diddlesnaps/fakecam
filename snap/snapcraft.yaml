@@ -17,6 +17,14 @@ architectures:
   - build-on: armhf
 
 parts:
+  snapcraft-preload:
+    source: https://github.com/sergiusens/snapcraft-preload.git
+    plugin: cmake
+    build-packages:
+      - on amd64:
+        - gcc-multilib
+        - g++-multilib
+
   bodypix:
     source: bodypix
     plugin: nodejs
@@ -111,6 +119,8 @@ apps:
 
   gui:
     command: bin/fakecamgui
+    command-chain:
+      - bin/snapcraft-preload
     extensions: [gnome-3-28]
     plugs:
       - camera
