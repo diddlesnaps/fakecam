@@ -157,9 +157,10 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
             use_mirror = data["mirror"]
 
 def start_bodypix():
-    if os.environ["SNAP"] is not None:
+    if "SNAP" in os.environ and os.environ["SNAP"] is not None:
         appjsdir = os.environ["SNAP"]
     else:
-        project = os.path.dirname(os.path.dirname(__file__))
+        project = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         appjsdir = os.path.join(project, "bodypix")
+    os.chdir(appjsdir)
     os.execlp("node", "node", os.path.join(appjsdir, "app.js"))

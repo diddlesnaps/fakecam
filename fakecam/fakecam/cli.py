@@ -71,7 +71,6 @@ def main():
         "use_mirror": use_mirror,
         "resolution": resolution,
     }
-    print(args)
     p = multiprocessing.Process(target=capture.start, kwargs=args)
     p2 = multiprocessing.Process(target=capture.start_bodypix)
     try:
