@@ -30,6 +30,7 @@ class MainWindow:
 
     av_widget = None
     av_sink = None
+    av_conv = None
     av_src = None
 
     background = None
@@ -40,17 +41,6 @@ class MainWindow:
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(os.path.dirname(__file__), "fakecam.glade"))
         window = builder.get_object("MainWindow")
-
-        handlers = {
-            "onDestroy": self.on_quit,
-            "onAbout": self.on_about,
-            "onSelectedBackground": self.on_selected_background,
-            "onResetBackground": self.on_reset_background,
-            "onHologramToggled": self.on_hologram_toggled,
-            "onMirrorToggled": self.on_mirror_toggled,
-            "onStartButtonClicked": self.on_startbutton_clicked,
-        }
-        builder.connect_signals(handlers)
 
         if os.path.isfile(CONFIG_FILE):
             config.read(CONFIG_FILE)
@@ -63,8 +53,17 @@ class MainWindow:
                     pass
 
                 try:
+                    self.use_mirror = config.getboolean("main", "mirror")
+                    builder.get_object("mirror_toggle").set_active(self.use_mirror)
+                except configparser.NoOptionError:
+                    pass
+
+                try:
                     background = config.get("main", "background")
-                    if os.path.isfile(background):
+                    if background == "greenscreen":
+                        self.background = background
+                        builder.get_object("greenscreen_toggle").set_active(True)
+                    elif os.path.isfile(background) and os.access(background, os.R_OK):
                         self.background = background
                         builder.get_object("background_chooser").set_filename(background)
                 except configparser.NoOptionError:
@@ -91,6 +90,17 @@ class MainWindow:
             dialog.destroy()
             sys.exit(1)
         else:
+            handlers = {
+                "onDestroy": self.on_quit,
+                "onAbout": self.on_about,
+                "onSelectedBackground": self.on_selected_background,
+                "onResetBackground": self.on_reset_background,
+                "onGreenscreenToggled": self.on_greenscreen_toggled,
+                "onHologramToggled": self.on_hologram_toggled,
+                "onMirrorToggled": self.on_mirror_toggled,
+                "onStartButtonClicked": self.on_startbutton_clicked,
+            }
+            builder.connect_signals(handlers)
             window.show_all()
 
     def on_message(self, bus, message):
@@ -124,13 +134,10 @@ class MainWindow:
             self.p2.terminate()
             self.p2.join()
 
-        if self.p2 is not None:
-            self.p2.terminate()
-            self.p2.join()
-
-        self.p = multiprocessing.Process(target=capture.start, kwargs={'background': self.background,
-                                                                       'use_hologram': self.use_hologram,
-                                                                       'queue': self.queue})
+        self.p = multiprocessing.Process(target=capture.start, kwargs={"background": self.background,
+                                                                       "use_mirror": self.use_mirror,
+                                                                       "use_hologram": self.use_hologram,
+                                                                       "queue": self.queue})
         self.p2 = multiprocessing.Process(target=capture.start_bodypix)
 
     def update_worker(self):
@@ -141,16 +148,38 @@ class MainWindow:
                 mirror=self.use_mirror,
             ))
 
-    def on_reset_background(self, widget):
+    def on_reset_background(self, widget, *args):
         self.background = None
         self.builder.get_object("background_chooser").unselect_all()
         config.remove_option("main", "background")
         self.update_worker()
 
-    def on_selected_background(self, widget):
-        self.background = widget.get_filename()
-        config.set("main", "background", self.background)
+    def set_background(self, background):
+        self.background = background
+        if background is not None:
+            config.set("main", "background", background)
+        else:
+            config.set("main", "background", "")
         self.update_worker()
+
+    def on_selected_background(self, widget, *args):
+        self.set_background(widget.get_filename())
+
+    def on_greenscreen_toggled(self, widget, *args):
+        chooser = self.builder.get_object("background_chooser")
+        reset_button = self.builder.get_object("reset_button")
+        background = chooser.get_filename()
+        if widget.get_active() is True:
+            chooser.set_sensitive(False)
+            reset_button.set_sensitive(False)
+            self.set_background("greenscreen")
+        else:
+            chooser.set_sensitive(True)
+            reset_button.set_sensitive(True)
+            if background is not None and os.path.isfile(background) and os.access(background, os.R_OK):
+                self.set_background(background)
+            else:
+                self.set_background(None)
 
     def on_hologram_toggled(self, widget, *args):
         self.use_hologram = widget.get_active()
@@ -162,25 +191,19 @@ class MainWindow:
         config.set("main", "mirror", str(self.use_mirror))
         self.update_worker()
 
-    def on_startbutton_clicked(self, widget):
+    def on_startbutton_clicked(self, widget, *args):
         if self.started:
             self.stop()
-            # self.builder.get_object("hologram_toggle").set_sensitive(True)
-            # self.builder.get_object("background_chooser").set_sensitive(True)
-            # self.builder.get_object("reset_button").set_sensitive(True)
             widget.set_label("Start Fakecam")
             self.started = False
         else:
-            # self.builder.get_object("hologram_toggle").set_sensitive(False)
-            # self.builder.get_object("background_chooser").set_sensitive(False)
-            # self.builder.get_object("reset_button").set_sensitive(False)
             widget.set_label("Stop Fakecam")
             self.start()
             self.started = True
 
     def start(self):
-        # movie_window = self.builder.get_object('movie_window')
-        # self.movie_window_xid = movie_window.get_property('window').get_xid()
+        # movie_window = self.builder.get_object("movie_window")
+        # self.movie_window_xid = movie_window.get_property("window").get_xid()
         self.setup_subprocess()
         self.p2.start()
         self.p.start()
@@ -209,7 +232,7 @@ class MainWindow:
             else:
                 pipeline.set_state(Gst.State.NULL)
 
-            # src = Gst.parse_launch('v4l2src device=/dev/video20 ! video/x-raw ! videoconvert')
+            # src = Gst.parse_launch("v4l2src device=/dev/video20 ! video/x-raw ! videoconvert")
             src = Gst.ElementFactory.make("v4l2src")
             src.set_property("device", "/dev/video20")
             conv = Gst.ElementFactory.make("videoconvert")
@@ -221,6 +244,7 @@ class MainWindow:
             conv.link(sink)
             self.pipeline = pipeline
             self.av_src = src
+            self.av_conv = conv
             self.av_sink = sink
         except GLib.Error:
             print("Error setting up video source")
@@ -237,6 +261,9 @@ class MainWindow:
         if self.av_src is not None:
             self.pipeline.remove(self.av_src)
             self.av_src = None
+        if self.av_conv is not None:
+            self.pipeline.remove(self.av_conv)
+            self.av_conv = None
         if self.av_widget is not None:
             self.av_widget.set_visible(False)
             viewport.remove(self.av_widget)

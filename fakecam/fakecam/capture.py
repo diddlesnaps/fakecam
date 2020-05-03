@@ -124,7 +124,12 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
     # load the virtual background
     background_scaled = None
-    if background is not None:
+    greenscreen_array = np.zeros((height, width, 3), np.uint8)
+    greenscreen_array[:] = (0, 177, 64)
+    greenscreen_image = cv2.UMat(greenscreen_array)
+    if background == "greenscreen":
+        background_scaled = greenscreen_image
+    elif background is not None and os.path.isfile(background) and os.access(background, os.R_OK):
         background_data = cv2.UMat(cv2.imread(background))
         background_scaled = cv2.resize(background_data, (width, height))
 
@@ -141,6 +146,8 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
             if data["background"] is None:
                 background_scaled = None
+            elif data["background"] == "greenscreen":
+                background_scaled = greenscreen_image
             else:
                 background = data["background"]
                 background_data = cv2.UMat(cv2.imread(background))
@@ -150,10 +157,9 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
             use_mirror = data["mirror"]
 
 def start_bodypix():
-    appjsdir = None
-    if os.environ["SNAP"]:
+    if os.environ["SNAP"] is not None:
         appjsdir = os.environ["SNAP"]
     else:
         project = os.path.dirname(os.path.dirname(__file__))
         appjsdir = os.path.join(project, "bodypix")
-    os.execlp("node", "node", os.path.join(os.environ["SNAP"], "app.js"))
+    os.execlp("node", "node", os.path.join(appjsdir, "app.js"))

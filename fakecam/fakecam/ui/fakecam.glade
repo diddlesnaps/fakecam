@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkFileFilter" id="jpeg_images_filter">
@@ -118,7 +118,7 @@
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">3</property>
+                <property name="top_attach">4</property>
                 <property name="width">3</property>
               </packing>
             </child>
@@ -128,13 +128,13 @@
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="valign">center</property>
-                <property name="label" translatable="yes">Use _Hologram effect:</property>
+                <property name="label" translatable="yes">Apply _Hologram effect:</property>
                 <property name="use_underline">True</property>
                 <property name="mnemonic_widget">hologram_toggle</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
@@ -148,7 +148,7 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="top_attach">2</property>
               </packing>
             </child>
             <child>
@@ -202,13 +202,13 @@
                 <property name="can_focus">False</property>
                 <property name="halign">end</property>
                 <property name="valign">center</property>
-                <property name="label" translatable="yes">_Mirror image:</property>
+                <property name="label" translatable="yes">_Mirror the image:</property>
                 <property name="use_underline">True</property>
                 <property name="mnemonic_widget">mirror_toggle</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -221,7 +221,7 @@
               </object>
               <packing>
                 <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="top_attach">3</property>
               </packing>
             </child>
             <child>
@@ -232,8 +232,40 @@
               </object>
               <packing>
                 <property name="left_attach">2</property>
+                <property name="top_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAccelLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">end</property>
+                <property name="valign">center</property>
+                <property name="label" translatable="yes">Add _greenscreen:</property>
+                <property name="use_underline">True</property>
+                <property name="mnemonic_widget">greenscreen_toggle</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
                 <property name="top_attach">1</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="greenscreen_toggle">
+                <property name="name">hologramToggle</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <signal name="state-set" handler="onGreenscreenToggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>

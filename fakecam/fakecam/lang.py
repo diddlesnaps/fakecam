@@ -30,15 +30,23 @@ USAGE:
     fakecam [--input=<camera-device>] [--resolution=<width>x<height>] [--background=<background-file>] [--hologram]
 
 PARAMETERS:
+  --help:       display this help document.
   --input:      specify the camera device to use. The default is /dev/video0.
   --resolution: override your camera's default resolution. Must be width and
                 height as numbers separated by an 'x', e.g. '640x480'. May not
                 work reliably.
   --background: replace your camera background with an image. The default is
-                to blur your existing background that your camera sees.
+                to blur your existing background that your camera sees. Use the
+                special value of 'greenscreen' to replace the background with a
+                solid green colour so that you can cut yourself out of the image
+                with chroma-key software such as is built-into OBS.
   --hologram:   overlay a Star Wars style hologram effect onto your likeness.
+  --mirror:     flip the image.
 """
 
-USING_HOLOGRAM = "Using the hologram effect"
-USING_BACKGROUND_IMAGE = "Using background image {background}"
-USING_BACKGROUND_BLUR = "No background specified, will blur your background instead"
+USING_MIRROR = "Mirroring the camera image."
+USING_HOLOGRAM = "Using the hologram effect."
+USING_GREENSCREEN = "Replacing your background with a greenscreen."
+USING_BACKGROUND_IMAGE = "Using background image {background}."
+USING_BACKGROUND_BLUR = "No background specified. will blur your background instead."
+BACKGROUND_UNREADABLE = "The background image cannot be read. Will blur your background instead."

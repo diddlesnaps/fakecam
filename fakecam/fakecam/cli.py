@@ -42,7 +42,7 @@ def main():
 
     if not os.access(camera, os.R_OK):
         print(lang.CONNECT_INTERFACE + "\n\nIf you have multiple camera devices in /dev/video* then you may specify "
-                                       "the correct device with the '-i' or '--input' parameter.")
+                                       "the correct device with the '-i' or '--input' parameter.\n")
 
     if not os.access("/dev/video20", os.W_OK):
         print(lang.INSTRUCTIONS)
@@ -51,18 +51,27 @@ def main():
     if use_hologram:
         print(lang.USING_HOLOGRAM)
 
-    if background is not None and background != "" and os.path.isfile(background):
-        print(lang.USING_BACKGROUND_IMAGE.format(background=background))
+    if background is not None:
+        background = os.path.expanduser(background)
+        if background == "greenscreen":
+            print(lang.USING_GREENSCREEN)
+        elif os.path.isfile(background) and os.access(background, os.R_OK):
+            print(lang.USING_BACKGROUND_IMAGE.format(background=background))
+        else:
+            print(lang.BACKGROUND_UNREADABLE)
+            background = None
     else:
         print(lang.USING_BACKGROUND_BLUR)
         background = None
 
     args = {
-        background: background,
-        use_hologram: use_hologram,
-        use_mirror: use_mirror,
-        resolution: resolution
+        "camera": camera,
+        "background": background,
+        "use_hologram": use_hologram,
+        "use_mirror": use_mirror,
+        "resolution": resolution,
     }
+    print(args)
     p = multiprocessing.Process(target=capture.start, kwargs=args)
     p2 = multiprocessing.Process(target=capture.start_bodypix)
     try:
