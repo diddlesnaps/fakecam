@@ -17,6 +17,7 @@ setup(
         "pyfakewebcam==0.1.0",
         "pycairo==1.19.1",
         "PyGObject==3.36.0",
+        "typing_extensions==3.7.4.2",
     ],
     entry_points={
         'console_scripts': [
