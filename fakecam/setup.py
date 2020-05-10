@@ -9,7 +9,10 @@ setup(
     description='Fakecam',
     packages=find_packages(),
     package_dir={"fakecam": "fakecam"},
-    package_data={"fakecam": ["ui/fakecam.glade"]},
+    package_data={"fakecam": [
+        "ui/fakecam.glade",
+        "ui/hologram.png",
+    ]},
     install_requires=[
         "numpy==1.18.2",
         "opencv-python==4.2.0.32",
