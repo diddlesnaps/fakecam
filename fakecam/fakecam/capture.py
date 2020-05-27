@@ -9,26 +9,39 @@ import requests
 from multiprocessing import Queue
 
 from .types import QueueDict
+from .bodypix_functions import scale_and_crop_to_input_tensor_shape, to_mask_tensor, to_input_resolution_height_and_width
 
 FHD = (1080, 1920)
 HD = (720, 1280)
 NTSC = (480, 720)
 
 
-def get_mask(frame, bodypix_url='http://localhost:13165'):
-    _, data = cv2.imencode(".jpg", frame)
-    r = requests.post(
-        url=bodypix_url,
-        data=data.tobytes(),
-        headers={"Content-Type": "application/octet-stream"})
-    mask = np.frombuffer(r.content, dtype=np.uint8)
-    mask = mask.reshape((frame.shape[0], frame.shape[1]))
+# if cv2.ocl.haveOpenCL():
+#     cv2.ocl.setUseOpenCL(True)
+
+cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'model.pb'))
+
+output_stride = 16
+internal_resolution = 0.5
+multiplier = 0.5
+
+
+def get_mask(frame, height, width):
+    blob = cv2.dnn.blobFromImage(frame, size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0), swapRB=True, crop=False)
+    cvNet.setInput(blob)
+    results = np.squeeze(cvNet.forward("float_segments/conv"))
+
+    segment_logits = cv2.UMat(results)
+    scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
+        segment_logits, height, width, True
+    )
+    mask = to_mask_tensor(scaled_segment_scores, 0.75)
     return mask
 
 
 def post_process_mask(mask):
     mask = cv2.dilate(mask, np.ones((10, 10), np.uint8), iterations=1)
-    mask = cv2.blur(cv2.UMat(mask.get().astype(np.float32)), (30, 30))
+    mask = cv2.blur(mask, (30, 30))
     return mask
 
 
@@ -62,22 +75,21 @@ def hologram_effect(img):
     return out
 
 
-def get_frame(cap: object, background: object = None, use_hologram: bool = False) -> object:
+def get_frame(cap: object, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
     _ret_, frame = cap.read()
     # fetch the mask with retries (the app needs to warmup and we're lazy)
     # e v e n t u a l l y c o n s i s t e n t
+    frame = cv2.UMat(frame)
     mask = None
     while mask is None:
         try:
-            mask = get_mask(frame)
+            mask = get_mask(frame, height=height, width=width)
         except:
             pass
 
     # post-process mask and frame
-    mask = cv2.UMat(mask)
     mask = post_process_mask(mask)
 
-    frame = cv2.UMat(frame)
     if background is None:
         background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
 
@@ -85,12 +97,11 @@ def get_frame(cap: object, background: object = None, use_hologram: bool = False
         frame = hologram_effect(frame)
 
     # composite the foreground and background
-    frame = frame.get().astype(np.uint8)
-    mask = mask.get().astype(np.float32)
-    background = background.get().astype(np.uint8)
-    inv_mask = 1 - mask
-    for c in range(frame.shape[2]):
-        frame[:, :, c] = frame[:, :, c] * mask + background[:, :, c] * inv_mask
+    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    ones = np.ones((height, width, 3))
+    inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
+
+    frame = cv2.add(cv2.multiply(frame, mask, dtype=cv2.CV_32F), cv2.multiply(background, inv_mask, dtype=cv2.CV_32F))
     return frame
 
 
@@ -135,12 +146,12 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
     # frames forever
     while True:
-        frame = get_frame(cap, background=background_scaled, use_hologram=use_hologram)
+        frame = get_frame(cap, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
         if use_mirror is True:
             frame = cv2.flip(frame, 1)
         # fake webcam expects RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        fake.schedule_frame(frame)
+        fake.schedule_frame(frame.get().astype(np.uint8))
         if queue is not None and not queue.empty():
             data = queue.get(False)
 
@@ -155,12 +166,3 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
             use_hologram = data["hologram"]
             use_mirror = data["mirror"]
-
-def start_bodypix():
-    if "SNAP" in os.environ and os.environ["SNAP"] is not None:
-        appjsdir = os.environ["SNAP"]
-    else:
-        project = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        appjsdir = os.path.join(project, "bodypix")
-    os.chdir(appjsdir)
-    os.execlp("node", "node", os.path.join(appjsdir, "app.js"))

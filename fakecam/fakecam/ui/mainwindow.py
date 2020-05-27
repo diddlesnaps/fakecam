@@ -19,7 +19,6 @@ config = configparser.SafeConfigParser()
 
 class MainWindow:
     p = None
-    p2 = None
     queue: "Queue[QueueDict]" = multiprocessing.Queue()
     pipeline = None
     builder = None
@@ -130,15 +129,11 @@ class MainWindow:
         if self.p is not None:
             self.p.terminate()
             self.p.join()
-        if self.p2 is not None:
-            self.p2.terminate()
-            self.p2.join()
 
         self.p = multiprocessing.Process(target=capture.start, kwargs={"background": self.background,
                                                                        "use_mirror": self.use_mirror,
                                                                        "use_hologram": self.use_hologram,
                                                                        "queue": self.queue})
-        self.p2 = multiprocessing.Process(target=capture.start_bodypix)
 
     def update_worker(self):
         if self.started is True:
@@ -205,7 +200,6 @@ class MainWindow:
         # movie_window = self.builder.get_object("movie_window")
         # self.movie_window_xid = movie_window.get_property("window").get_xid()
         self.setup_subprocess()
-        self.p2.start()
         self.p.start()
         GLib.timeout_add_seconds(5, self.try_start_viewer)
 
@@ -278,10 +272,6 @@ class MainWindow:
             self.p.terminate()
             self.p.join()
             self.p = None
-        if self.p2 is not None:
-            self.p2.terminate()
-            self.p2.join()
-            self.p2 = None
 
     def on_about(self, *args):
         dlg = self.builder.get_object("AboutDialog")

@@ -12,10 +12,11 @@ setup(
     package_data={"fakecam": [
         "ui/fakecam.glade",
         "ui/hologram.png",
+        "model.pb",
     ]},
     install_requires=[
         "numpy==1.18.2",
-        "opencv-python==4.2.0.32",
+        # "opencv-python==4.2.0.32",
         "requests==2.23.0",
         "pyfakewebcam==0.1.0",
         "pycairo==1.19.1",

@@ -72,14 +72,9 @@ def main():
         "resolution": resolution,
     }
     p = multiprocessing.Process(target=capture.start, kwargs=args)
-    p2 = multiprocessing.Process(target=capture.start_bodypix)
     try:
-        p2.start()
         p.start()
         p.join()
-        p2.join()
     except KeyboardInterrupt:
         p.terminate()
         p.join()
-        p2.terminate()
-        p2.join()
