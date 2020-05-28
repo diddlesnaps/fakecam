@@ -19,7 +19,7 @@ config = configparser.SafeConfigParser()
 
 class MainWindow:
     p = None
-    queue: "Queue[QueueDict]" = multiprocessing.Queue()
+    queue: Queue[QueueDict] = multiprocessing.Queue()
     pipeline = None
     builder = None
     started = False
@@ -37,6 +37,7 @@ class MainWindow:
     use_mirror = False
 
     def __init__(self):
+        self.player = None
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(os.path.dirname(__file__), "fakecam.glade"))
         window = builder.get_object("MainWindow")

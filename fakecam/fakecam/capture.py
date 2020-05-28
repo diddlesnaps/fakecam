@@ -1,15 +1,13 @@
 import os
 import signal
-from typing import Type
 
 import cv2
 import numpy as np
 import pyfakewebcam
-import requests
 from multiprocessing import Queue
 
 from .types import QueueDict
-from .bodypix_functions import scale_and_crop_to_input_tensor_shape, to_mask_tensor, to_input_resolution_height_and_width
+from .bodypix_functions import scale_and_crop_to_input_tensor_shape, to_mask_tensor
 
 FHD = (1080, 1920)
 HD = (720, 1280)
@@ -27,7 +25,9 @@ multiplier = 0.5
 
 
 def get_mask(frame, height, width):
-    blob = cv2.dnn.blobFromImage(frame, size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0), swapRB=True, crop=False)
+    blob = cv2.dnn.blobFromImage(frame,
+                                 size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0),
+                                 swapRB=True, crop=False)
     cvNet.setInput(blob)
     results = np.squeeze(cvNet.forward("float_segments/conv"))
 
