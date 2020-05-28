@@ -3,9 +3,9 @@ import signal
 
 import cv2
 import numpy as np
-import pyfakewebcam
 from multiprocessing import Queue
 
+from .pyfakewebcam import FakeWebcam
 from .types import QueueDict
 from .bodypix_functions import scale_and_crop_to_input_tensor_shape, to_mask_tensor
 
@@ -131,7 +131,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
     #         break
 
     # setup the fake camera
-    fake = pyfakewebcam.FakeWebcam("/dev/video20", width, height)
+    fake = FakeWebcam("/dev/video20", width, height)
 
     # load the virtual background
     background_scaled = None
@@ -150,8 +150,8 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
         if use_mirror is True:
             frame = cv2.flip(frame, 1)
         # fake webcam expects RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        fake.schedule_frame(frame.get().astype(np.uint8))
+        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        fake.schedule_frame(frame)
         if queue is not None and not queue.empty():
             data = queue.get(False)
 
