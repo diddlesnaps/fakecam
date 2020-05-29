@@ -16,6 +16,14 @@ architectures:
   - build-on: arm64
   - build-on: armhf
 
+package-repositories:
+  - type: apt
+    deb-types: [deb]
+    components: [main]
+    suites: [all]
+    url: https://apt.repos.intel.com/oneapi
+    key-id: 52ABD6E87E421793971873FFACFA9FC57E6C5DBE
+
 parts:
   snapcraft-preload:
     source: https://github.com/sergiusens/snapcraft-preload.git
@@ -25,7 +33,106 @@ parts:
         - gcc-multilib
         - g++-multilib
 
+  intel-gmmlib:
+    source: https://github.com/intel/compute-runtime/releases/download/19.41.14441/intel-gmmlib_19.3.2_amd64.deb
+    plugin: dump
+  intel-igc-core:
+    source: https://github.com/intel/compute-runtime/releases/download/19.41.14441/intel-igc-core_1.0.2597_amd64.deb
+    plugin: dump
+  intel-igc-opencl:
+    source: https://github.com/intel/compute-runtime/releases/download/19.41.14441/intel-igc-opencl_1.0.2597_amd64.deb
+    plugin: dump
+  intel-ocloc:
+    source: https://github.com/intel/compute-runtime/releases/download/19.41.14441/intel-ocloc_19.41.14441_amd64.deb
+    plugin: dump
+  intel-opencl:
+    source: https://github.com/intel/compute-runtime/releases/download/19.41.14441/intel-opencl_19.41.14441_amd64.deb
+    plugin: dump
+
+  onednn:
+    source: https://github.com/oneapi-src/oneDNN/releases/download/v0.21/mklml_lnx_2019.0.5.20190502.tgz
+    plugin: dump
+    organize:
+      include: usr/include
+      lib: usr/lib
+      '*.txt': usr/share/doc/onednn/
+
+  #   source: https://github.com/openvinotoolkit/oneDNN.git
+  #   source-tag: v0.21_for_ie_master
+  #   plugin: cmake
+  #   override-pull: |
+  #     snapcraftctl pull
+  #     ./scripts/prepare_mkl.sh
+  #   configflags:
+  #     - -DCMAKE_BUILD_TYPE=Release
+  #     - -DCMAKE_INSTALL_PREFIX=/usr
+  #     - -DWITH_EXAMPLE=OFF
+  #     - -DWITH_TEST=OFF
+  #     - -DMKLDNN_USE_MKL=ON
+  #     # - -DDNNL_CPU_RUNTIME=OMP
+  #     # - -DDNNL_GPU_RUNTIME=OCL
+  #     # - -DDNNL_BUILD_EXAMPLES=OFF
+  #     # - -DDNNL_BUILD_TESTS=OFF
+  #   build-environment:
+  #     - CFLAGS: -O3
+  #     - CXXFLAGS: -O3
+  #   build-packages:
+  #     - intel-oneapi-mkl-devel
+  #     - wget
+  #   stage-packages:
+  #     - intel-oneapi-mkl
+
+  openvino:
+    after:
+      - intel-gmmlib
+      - intel-igc-core
+      - intel-igc-opencl
+      - intel-ocloc
+      - intel-opencl
+      - onednn
+      - opencv
+    source: https://github.com/openvinotoolkit/openvino.git
+    plugin: cmake
+    build-environment:
+      - OpenCV_DIR: $SNAPCRAFT_STAGE/usr/share/OpenCV
+      - CFLAGS: -O3
+      - CXXFLAGS: -O3
+    configflags:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DTHREADING=OMP
+      - -DNGRAPH_ONNX_IMPORT_ENABLE=OFF
+      - -DNGRAPH_TEST_UTIL_ENABLE=OFF
+      - -DNGRAPH_TOOLS_ENABLE=OFF
+      - -DENABLE_SAMPLES=OFF
+      - -DENABLE_OPENCV=OFF
+      - -DENABLE_PROFILING_ITT=OFF
+      - -DENABLE_CLDNN=ON
+      - -DENABLE_MKL_DNN=ON
+      - -DGEMM=MKL
+      - -DMKLROOT=$SNAPCRAFT_STAGE/opt/intel/inteloneapi/mkl/2021.1-beta06
+    build-snaps:
+      - cmake
+    build-packages:
+      - autoconf
+      - automake
+      - intel-oneapi-mkl-devel
+      - libtool
+      - libusb-1.0-0-dev
+      - python
+      - wget
+    stage-packages:
+      - intel-oneapi-mkl
+      - libusb-1.0-0
+
   opencv:
+    after:
+      - intel-gmmlib
+      - intel-igc-core
+      - intel-igc-opencl
+      - intel-ocloc
+      - intel-opencl
+      - onednn
     source: https://github.com/opencv/opencv.git
     source-branch: '3.4'
     plugin: cmake
@@ -37,7 +144,6 @@ parts:
       - -DBUILD_PERF_TESTS=OFF
       - -DWITH_FFMPEG=ON
       - -DWITH_GSTREAMER=ON
-      - -DWITH_OPENGL=ON
       - -DWITH_VULKAN=ON
       - -DWITH_OPENCL=ON
       - -DWITH_OPENCL_SVM=ON
@@ -53,18 +159,21 @@ parts:
       - -DWITH_TBB=ON
       - -DWITH_IPP=ON
       - -DWITH_INF_ENGINE=ON
+    build-environment:
+      - CFLAGS: -O3
+      - CXXFLAGS: -O3
     build-snaps:
       - cmake
     build-packages:
       - g++
       - gcc
+      - intel-oneapi-mkl-devel
       # - libatlas-base-dev
       - libavcodec-dev
       - libavformat-dev
       - libavresample-dev
       # - libblas-dev
       - libeigen3-dev
-      - libglu1-mesa-dev
       - libgstreamer-plugins-base1.0-dev
       - libgstreamer1.0-dev
       - libgtk-3-dev
@@ -85,12 +194,12 @@ parts:
       - python3-dev
       - python3-numpy
     stage-packages:
+      - intel-oneapi-mkl
       - libatlas3-base
       - libavcodec57
       - libavformat57
       - libavresample3
       # - libblas3
-      - libglu1-mesa
       - libgstreamer-plugins-base1.0-0
       - libgstreamer1.0-0
       - libjpeg8
@@ -108,7 +217,7 @@ parts:
       - va-driver-all
 
   fakecam:
-    after: [opencv]
+    after: [opencv, openvino]
     source: fakecam
     plugin: python
     python-version: python3
