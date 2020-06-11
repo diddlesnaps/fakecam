@@ -19,7 +19,7 @@ config = configparser.SafeConfigParser()
 
 class MainWindow:
     p = None
-    queue: Queue[QueueDict] = multiprocessing.Queue()
+    queue: "Queue[QueueDict]" = multiprocessing.Queue()
     pipeline = None
     builder = None
     started = False
