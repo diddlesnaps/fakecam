@@ -16,6 +16,14 @@ architectures:
   - build-on: arm64
   - build-on: armhf
 
+# package-repositories:
+#   - type: apt
+#     formats: [deb]
+#     components: [main]
+#     suites: [all]
+#     key-id: 7e6c5dbe
+#     url: https://apt.repos.intel.com/openvino/2020
+
 parts:
   snapcraft-preload:
     source: https://github.com/sergiusens/snapcraft-preload.git
@@ -27,7 +35,7 @@ parts:
 
   opencv:
     source: https://github.com/opencv/opencv.git
-    source-branch: '3.4'
+    source-tag: '4.5.0'
     plugin: cmake
     configflags:
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -58,6 +66,7 @@ parts:
     build-packages:
       - g++
       - gcc
+      # - intel-openvino-dev-ubuntu18
       # - libatlas-base-dev
       - libavcodec-dev
       - libavformat-dev
@@ -85,6 +94,7 @@ parts:
       - python3-dev
       - python3-numpy
     stage-packages:
+      # - intel-openvino-runtime-ubuntu18
       - libatlas3-base
       - libavcodec57
       - libavformat57
@@ -167,6 +177,8 @@ layout:
     bind: $SNAP/usr/lib/clc
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe
+  /opt/intel:
+    bind: $SNAP/opt/intel
 
 apps:
   clinfo:
