@@ -211,17 +211,17 @@ class MainWindow:
         # window = self.builder.get_object("MainWindow")
         print("Starting gstreamer")
         sink, widget = None, None
-        gtkglsink = Gst.ElementFactory.make("gtkglsink")
-        if gtkglsink is not None:
-            print("Using GTKGLSink")
-            glsinkbin = Gst.ElementFactory.make("glsinkbin")
-            glsinkbin.set_property("sink", gtkglsink)
-            widget = gtkglsink.get_property("widget")
-            sink = glsinkbin
-        else:
-            print("Using GTKSink")
-            sink = Gst.ElementFactory.make("gtksink")
-            widget = sink.get_property("widget")
+        # gtkglsink = Gst.ElementFactory.make("gtkglsink")
+        # if gtkglsink is not None:
+        #     print("Using GTKGLSink")
+        #     glsinkbin = Gst.ElementFactory.make("glsinkbin")
+        #     glsinkbin.set_property("sink", gtkglsink)
+        #     widget = gtkglsink.get_property("widget")
+        #     sink = glsinkbin
+        # else:
+        print("Using GTKSink")
+        sink = Gst.ElementFactory.make("gtksink")
+        widget = sink.get_property("widget")
 
         if sink is None:
             print("Could not set up gstreamer.")
