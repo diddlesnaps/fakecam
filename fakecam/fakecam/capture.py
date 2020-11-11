@@ -75,39 +75,29 @@ def hologram_effect(img):
     return out
 
 
-isOddFrame = True
-lastMask = None
 def get_frame(cap: object, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
-    global isOddFrame, lastMask
-
     _, frame = cap.read()
     # fetch the mask with retries (the app needs to warmup and we're lazy)
     # e v e n t u a l l y c o n s i s t e n t
-    if isOddFrame:
-        isOddFrame = False
-        frame = cv2.UMat(frame)
-        mask = None
-        while mask is None:
-            try:
-                mask = get_mask(frame, height=height, width=width)
-            except:
-                pass
+    frame = cv2.UMat(frame)
+    mask = None
+    while mask is None:
+        try:
+            mask = get_mask(frame, height=height, width=width)
+        except:
+            pass
 
-        # post-process mask and frame
-        mask = post_process_mask(mask)
+    # post-process mask and frame
+    mask = post_process_mask(mask)
 
-        if background is None:
-            background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
+    if background is None:
+        background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
 
-        if use_hologram:
-            frame = hologram_effect(frame)
+    if use_hologram:
+        frame = hologram_effect(frame)
 
-        # composite the foreground and background
-        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        lastMask = mask
-    else:
-        isOddFrame = True
-        mask = lastMask
+    # composite the foreground and background
+    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
     ones = np.ones((height, width, 3))
     inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
