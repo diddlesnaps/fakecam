@@ -76,16 +76,12 @@ def hologram_effect(img):
 
 
 def get_frame(cap: object, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
-    _, frame = cap.read()
-    # fetch the mask with retries (the app needs to warmup and we're lazy)
-    # e v e n t u a l l y c o n s i s t e n t
-    frame = cv2.UMat(frame)
-    mask = None
-    while mask is None:
-        try:
-            mask = get_mask(frame, height=height, width=width)
-        except:
-            pass
+    if not cap.grab():
+        print("ERROR: could not read from camera!")
+        return None
+
+    frame = cv2.UMat(cap.retrieve()[1])
+    mask = get_mask(frame, height=height, width=width)
 
     # post-process mask and frame
     mask = post_process_mask(mask)
@@ -155,6 +151,10 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
     # frames forever
     while True:
         frame = get_frame(cap, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
+        if frame is None:
+            print("ERROR: could not read from camera!")
+            break
+
         if use_mirror is True:
             frame = cv2.flip(frame, 1)
         # fake webcam expects RGB

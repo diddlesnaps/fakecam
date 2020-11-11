@@ -42,7 +42,8 @@ class FakeWebcam:
         # self._buffer = np.zeros((self._settings.fmt.pix.height, 2*self._settings.fmt.pix.width), dtype=np.uint8)
         # self._yuv = np.zeros((self._settings.fmt.pix.height, self._settings.fmt.pix.width, 3), dtype=np.uint8)
 
-        fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings)
+        if fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings) < 0:
+            print("ERROR: unable to set video format!")
 
 
     def print_capabilities(self):
@@ -55,7 +56,6 @@ class FakeWebcam:
 
     # TODO: improve the conversion from RGB to YUV using cython when opencv is not available
     def schedule_frame(self, frame):
-
         
         # if frame.shape[0] != self._settings.fmt.pix.height:
         #     raise Exception('frame height does not match the height of webcam device: {}!={}\n'.format(self._settings.fmt.pix.height, frame.shape[0]))
@@ -78,4 +78,8 @@ class FakeWebcam:
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
             
         # os.write(self._video_device, self._buffer.tostring())
-        os.write(self._video_device, frame.get().astype(np.uint8))
+        written = os.write(self._video_device, frame.get().astype(np.uint8).tostring())
+        if written < 0:
+            print("ERROR: could not write to output device!")
+            os.close(self._video_device)
+            sys.exit(1)
