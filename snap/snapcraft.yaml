@@ -52,6 +52,7 @@ parts:
       - -DWITH_EIGEN=ON
       - -DWITH_LAPACK=ON
       - -DWITH_V4L=ON
+      - -DWITH_LIBV4L=ON
       - -DWITH_VA=ON
       - -DWITH_VA_INTEL=ON
       - -DWITH_MFX=ON
@@ -122,6 +123,7 @@ parts:
     source: fakecam
     plugin: python
     python-version: python3
+    requirements: [requirements.txt]
     build-packages:
       - libgirepository1.0-dev
     stage-packages:

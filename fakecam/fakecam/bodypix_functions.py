@@ -44,5 +44,5 @@ def to_input_resolution_height_and_width(internal_resolution, output_stride, inp
 
 
 def to_mask_tensor(segment_scores, threshold):
-    ret, thresh = cv2.threshold(segment_scores, threshold, 1, cv2.THRESH_BINARY)
+    _, thresh = cv2.threshold(segment_scores, threshold, 1, cv2.THRESH_BINARY)
     return thresh

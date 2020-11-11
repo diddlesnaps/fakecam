@@ -32,6 +32,7 @@ class MainWindow:
     av_conv = None
     av_src = None
 
+    camera = "/dev/video0"
     background = None
     use_hologram = False
     use_mirror = False
@@ -74,7 +75,7 @@ class MainWindow:
 
         self.builder = builder
 
-        if not os.access("/dev/video0", os.R_OK):
+        if not os.access(self.camera, os.R_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
                                        Gtk.ButtonsType.OK, "Camera device not accessible")
             dialog.format_secondary_text(lang.CONNECT_INTERFACE + "\n\nThe fakecam app will now close.")
@@ -125,16 +126,6 @@ class MainWindow:
     #         imagesink = message.src
     #         GLib.idle_add(imagesink.set_property, "force-aspect-ratio", True)
     #         GLib.idle_add(imagesink.set_window_handle, self.movie_window_xid)
-
-    def setup_subprocess(self):
-        if self.p is not None:
-            self.p.terminate()
-            self.p.join()
-
-        self.p = multiprocessing.Process(target=capture.start, kwargs={"background": self.background,
-                                                                       "use_mirror": self.use_mirror,
-                                                                       "use_hologram": self.use_hologram,
-                                                                       "queue": self.queue})
 
     def update_worker(self):
         if self.started is True:
@@ -200,14 +191,38 @@ class MainWindow:
     def start(self):
         # movie_window = self.builder.get_object("movie_window")
         # self.movie_window_xid = movie_window.get_property("window").get_xid()
-        self.setup_subprocess()
-        self.p.start()
+        self.stop()
+
+        args = {
+            "camera": self.camera,
+            "background": self.background,
+            "use_hologram": self.use_hologram,
+            "use_mirror": self.use_mirror,
+            "queue": self.queue,
+            "resolution": None
+        }
+        p = multiprocessing.Process(target=capture.start, kwargs=args)
+        p.start()
+        self.p = p
+
         GLib.timeout_add_seconds(5, self.try_start_viewer)
 
     def try_start_viewer(self):
-        window = self.builder.get_object("MainWindow")
+        # window = self.builder.get_object("MainWindow")
+        print("Starting gstreamer")
+        sink, widget = None, None
+        gtkglsink = Gst.ElementFactory.make("gtkglsink")
+        if gtkglsink is not None:
+            print("Using GTKGLSink")
+            glsinkbin = Gst.ElementFactory.make("glsinkbin")
+            glsinkbin.set_property("sink", gtkglsink)
+            widget = gtkglsink.get_property("widget")
+            sink = glsinkbin
+        else:
+            print("Using GTKSink")
+            sink = Gst.ElementFactory.make("gtksink")
+            widget = sink.get_property("widget")
 
-        sink, widget, name = gstreamer.create_gtk_widget()
         if sink is None:
             print("Could not set up gstreamer.")
             return False

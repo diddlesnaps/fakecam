@@ -75,33 +75,47 @@ def hologram_effect(img):
     return out
 
 
+isOddFrame = True
+lastMask = None
 def get_frame(cap: object, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
-    _ret_, frame = cap.read()
+    global isOddFrame, lastMask
+
+    _, frame = cap.read()
     # fetch the mask with retries (the app needs to warmup and we're lazy)
     # e v e n t u a l l y c o n s i s t e n t
-    frame = cv2.UMat(frame)
-    mask = None
-    while mask is None:
-        try:
-            mask = get_mask(frame, height=height, width=width)
-        except:
-            pass
+    if isOddFrame:
+        isOddFrame = False
+        frame = cv2.UMat(frame)
+        mask = None
+        while mask is None:
+            try:
+                mask = get_mask(frame, height=height, width=width)
+            except:
+                pass
 
-    # post-process mask and frame
-    mask = post_process_mask(mask)
+        # post-process mask and frame
+        mask = post_process_mask(mask)
 
-    if background is None:
-        background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
+        if background is None:
+            background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
 
-    if use_hologram:
-        frame = hologram_effect(frame)
+        if use_hologram:
+            frame = hologram_effect(frame)
 
-    # composite the foreground and background
-    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        # composite the foreground and background
+        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        lastMask = mask
+    else:
+        isOddFrame = True
+        mask = lastMask
+
     ones = np.ones((height, width, 3))
     inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
 
-    frame = cv2.add(cv2.multiply(frame, mask, dtype=cv2.CV_32F), cv2.multiply(background, inv_mask, dtype=cv2.CV_32F))
+    mask_mult = cv2.multiply(frame, mask, dtype=cv2.CV_32F)
+    inv_mask_mult = cv2.multiply(background, inv_mask, dtype=cv2.CV_32F)
+
+    frame = cv2.add(mask_mult, inv_mask_mult)
     return frame
 
 
@@ -110,7 +124,11 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     # setup access to the *real* webcam
+    print("Starting capture using device: {camera}".format(camera=camera))
     cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
+    if not cap.isOpened():
+        print("Failed to open {camera}".format(camera=camera))
+        return
 
     orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     orig_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -122,6 +140,8 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     else:
         width, height = orig_width, orig_height
+
+    print("Resolution: {width}:{height}".format(width=width,height=height))
 
     # for (height, width) in [FHD, HD, NTSC, (orig_height, orig_width)]:
     #     # Attempt to set the camera resolution via brute force

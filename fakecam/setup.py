@@ -15,7 +15,7 @@ setup(
         "model.pb",
     ]},
     install_requires=[
-        "numpy==1.19.2",
+        "numpy==1.19.4",
         # "opencv-python==4.2.0.32",
         "requests==2.23.0",
         "pyfakewebcam==0.1.0",
