@@ -121,8 +121,6 @@ def get_frame(cap: object, background: object = None, use_hologram: bool = False
 
 def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: str = None):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
     cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
