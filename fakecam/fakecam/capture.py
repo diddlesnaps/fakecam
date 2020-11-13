@@ -106,7 +106,7 @@ def get_frame(cap: object, background: object = None, use_hologram: bool = False
 
 
 def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", background: str = None,
-          use_hologram: bool = False, use_mirror: bool = False, resolution: str = None):
+          use_hologram: bool = False, use_mirror: bool = False, resolution: (int,int) = None):
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
     cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
@@ -119,7 +119,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
     if resolution is not None:
         # resolution is supplied by user in width followed by height order
-        width, height = resolution[0], resolution[1]
+        (width, height) = resolution
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     else:
