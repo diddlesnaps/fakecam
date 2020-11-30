@@ -158,7 +158,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
         if use_mirror is True:
             frame = cv2.flip(frame, 1)
         # fake webcam expects RGB
-        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         fake.schedule_frame(frame)
         if queue is not None and not queue.empty():
             data = queue.get(False)

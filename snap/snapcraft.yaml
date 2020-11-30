@@ -1,5 +1,5 @@
 name: fakecam
-version: '2.0.0'
+version: '2.1.0'
 summary: Fakecam
 description: |
   Fake background removing camera for streaming and video
@@ -171,6 +171,12 @@ parts:
       done
       find $SNAPCRAFT_PRIME/usr/share/doc/ -type f -not -name 'copyright' -delete
       find $SNAPCRAFT_PRIME/usr/share -type d -empty -delete
+
+  precompile:
+    after: [fakecam, opencv, cleanup]
+    plugin: nil
+    override-prime: |
+      python3 -m compileall -q -j$SNAPCRAFT_PARALLEL_BUILD_COUNT $SNAPCRAFT_PRIME
 
 layout:
   /usr/include/clc:
