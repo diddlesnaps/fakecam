@@ -31,7 +31,7 @@ class FakeWebcam:
 
         self._settings = _v4l2.v4l2_format()
         self._settings.type = _v4l2.V4L2_BUF_TYPE_VIDEO_OUTPUT
-        self._settings.fmt.pix.pixelformat = _v4l2.V4L2_PIX_FMT_YUYV
+        self._settings.fmt.pix.pixelformat = _v4l2.V4L2_PIX_FMT_RGB24
         self._settings.fmt.pix.width = width
         self._settings.fmt.pix.height = height
         self._settings.fmt.pix.field = _v4l2.V4L2_FIELD_NONE
@@ -65,20 +65,20 @@ class FakeWebcam:
         #     raise Exception('num frame channels does not match the num channels of webcam device: {}!={}\n'.format(self._channels, frame.shape[2]))
 
         # t1 = timeit.default_timer()
-        self._yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV).get().astype(np.uint8)
+        # self._yuv = cv2.cvtColor(frame, cv2.COLOR_RGB2YUV).get().astype(np.uint8)
         # t2 = timeit.default_timer()
         # sys.stderr.write('conversion time: {}\n'.format(t2-t1))
 
         # t1 = timeit.default_timer()
-        for i in range(self._settings.fmt.pix.height):
-            self._buffer[i,::2] = self._yuv[i,:,0]
-            self._buffer[i,1::4] = self._yuv[i,::2,1]
-            self._buffer[i,3::4] = self._yuv[i,::2,2]
+        # for i in range(self._settings.fmt.pix.height):
+        #     self._buffer[i,::2] = self._yuv[i,:,0]
+        #     self._buffer[i,1::4] = self._yuv[i,::2,1]
+        #     self._buffer[i,3::4] = self._yuv[i,::2,2]
         # t2 = timeit.default_timer()
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 
-        written = os.write(self._video_device, self._buffer.tostring())
-        # written = os.write(self._video_device, frame.get().astype(np.uint8).tostring())
+        # os.write(self._video_device, self._buffer.tostring())
+        written = os.write(self._video_device, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).get().astype(np.uint8).tostring())
         if written < 0:
             print("ERROR: could not write to output device!")
             os.close(self._video_device)
