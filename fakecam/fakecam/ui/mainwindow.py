@@ -48,6 +48,11 @@ class MainWindow:
 
             if config.has_section("main"):
                 try:
+                    self.camera = config.get("main", "camera")
+                except configparser.NoOptionError:
+                    pass
+
+                try:
                     self.use_hologram = config.getboolean("main", "hologram")
                     builder.get_object("hologram_toggle").set_active(self.use_hologram)
                 except configparser.NoOptionError:
