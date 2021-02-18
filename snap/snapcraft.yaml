@@ -1,5 +1,5 @@
 name: fakecam
-version: '2.2.0'
+version: '2.2.1'
 summary: Fakecam
 description: |
   Fake background removing camera for streaming and video
@@ -10,6 +10,7 @@ description: |
 base: core18
 grade: stable
 confinement: strict
+compression: lzo
 
 architectures:
   - build-on: amd64
@@ -185,6 +186,8 @@ layout:
     bind: $SNAP/usr/lib/clc
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe
+  /usr/share/libdrm/amdgpu.ids:
+    bind-file: $SNAP/usr/share/libdrm/amdgpu.ids
   /opt/intel:
     bind: $SNAP/opt/intel
 
