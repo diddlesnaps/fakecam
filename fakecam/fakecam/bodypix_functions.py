@@ -2,29 +2,36 @@ import cv2
 import numpy as np
 
 
-def remove_padding_and_resize_back(resized_and_padded, original_height, original_width):
-    return cv2.resize(resized_and_padded, (original_width, original_height))
+class BodypixScaler:
+    width = 0
+    height = 0
+    zeroes = None
+    ones = None
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.zeroes = cv2.UMat(np.zeros((height, width)))
+        self.ones = cv2.UMat(np.ones((height, width)))
 
 
-def sigmoid(x, height, width):
-    zeroes = cv2.UMat(np.zeros((height, width)))
-    ones = cv2.UMat(np.ones((height, width)))
-
-    subbed = cv2.subtract(zeroes, x, dtype=cv2.CV_32F)
-    added = cv2.add(ones, cv2.exp(subbed), dtype=cv2.CV_32F)
-    return cv2.divide(ones, added, dtype=cv2.CV_32F)
+    def remove_padding_and_resize_back(self, resized_and_padded):
+        return cv2.resize(resized_and_padded, (self.width, self.height))
 
 
-def scale_and_crop_to_input_tensor_shape(tensor,
-                                         input_tensor_height, input_tensor_width,
-                                         apply_sigmoid_activation):
-    in_resized_and_padded = cv2.resize(tensor,
-                                       (input_tensor_width, input_tensor_height))
-    if apply_sigmoid_activation:
-        in_resized_and_padded = sigmoid(in_resized_and_padded, input_tensor_height, input_tensor_width)
+    def sigmoid(self, x):
+        subbed = cv2.subtract(self.zeroes, x, dtype=cv2.CV_32F)
+        added = cv2.add(self.ones, cv2.exp(subbed), dtype=cv2.CV_32F)
+        return cv2.divide(self.ones, added, dtype=cv2.CV_32F)
 
-    return remove_padding_and_resize_back(in_resized_and_padded,
-                                          input_tensor_height, input_tensor_width)
+
+    def scale_and_crop_to_input_tensor_shape(self, tensor,
+                                            apply_sigmoid_activation):
+        in_resized_and_padded = cv2.resize(tensor,
+                                           (self.width, self.height))
+        if apply_sigmoid_activation:
+            in_resized_and_padded = self.sigmoid(in_resized_and_padded)
+
+        return self.remove_padding_and_resize_back(in_resized_and_padded)
 
 
 def is_valid_input_resolution(resolution, output_stride):

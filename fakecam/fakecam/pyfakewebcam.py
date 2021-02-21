@@ -78,7 +78,8 @@ class FakeWebcam:
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 
         # os.write(self._video_device, self._buffer.tostring())
-        written = os.write(self._video_device, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).get().astype(np.uint8).tostring())
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        written = os.write(self._video_device, frame.get().astype(np.uint8).tostring())
         if written < 0:
             print("ERROR: could not write to output device!")
             os.close(self._video_device)

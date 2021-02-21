@@ -8,15 +8,12 @@ from multiprocessing import Queue
 
 from .pyfakewebcam import FakeWebcam
 from .types import QueueDict
-from .bodypix_functions import scale_and_crop_to_input_tensor_shape, to_mask_tensor
+from .bodypix_functions import BodypixScaler, to_mask_tensor
 
 FHD = (1080, 1920)
 HD = (720, 1280)
 NTSC = (480, 720)
 
-
-# if cv2.ocl.haveOpenCL():
-#     cv2.ocl.setUseOpenCL(True)
 
 cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'model.pb'))
 
@@ -25,23 +22,19 @@ internal_resolution = 0.5
 multiplier = 0.5
 
 
-def get_mask(frame, height, width):
+def get_mask(frame, scaler, dilation, height, width):
     blob = cv2.dnn.blobFromImage(frame,
                                  size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0),
                                  swapRB=True, crop=False)
     cvNet.setInput(blob)
-    results = np.squeeze(cvNet.forward("float_segments/conv"))
+    results = cvNet.forward("float_segments/conv")[0][0]
 
     segment_logits = cv2.UMat(results)
-    scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
-        segment_logits, height, width, True
+    scaled_segment_scores = scaler.scale_and_crop_to_input_tensor_shape(
+        segment_logits, True
     )
     mask = to_mask_tensor(scaled_segment_scores, 0.75)
-    return mask
-
-
-def post_process_mask(mask):
-    mask = cv2.dilate(mask, np.ones((10, 10), np.uint8), iterations=1)
+    mask = cv2.dilate(mask, dilation, iterations=1)
     mask = cv2.blur(mask, (30, 30))
     return mask
 
@@ -76,19 +69,16 @@ def hologram_effect(img):
     return out
 
 
-def get_frame(cap: object, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
+def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
     if not cap.grab():
         print("ERROR: could not read from camera!")
         return None
 
     frame = cv2.UMat(cap.retrieve()[1])
-    mask = get_mask(frame, height=height, width=width)
-
-    # post-process mask and frame
-    mask = post_process_mask(mask)
+    mask = get_mask(frame, scaler, dilation, height=height, width=width)
 
     if background is None:
-        background = cv2.GaussianBlur(frame, (221, 221), sigmaX=20, sigmaY=20)
+        background = cv2.GaussianBlur(frame, (61, 61), sigmaX=20, sigmaY=20)
 
     if use_hologram:
         frame = hologram_effect(frame)
@@ -96,7 +86,6 @@ def get_frame(cap: object, background: object = None, use_hologram: bool = False
     # composite the foreground and background
     mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
-    ones = np.ones((height, width, 3))
     inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
 
     mask_mult = cv2.multiply(frame, mask, dtype=cv2.CV_32F)
@@ -128,6 +117,10 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
     print("Resolution: {width}:{height}".format(width=width,height=height))
 
+    scaler = BodypixScaler(width, height)
+    ones = cv2.UMat(np.ones((height, width, 3)))
+    dilation = cv2.UMat(np.ones((10, 10), np.uint8))
+
     # for (height, width) in [FHD, HD, NTSC, (orig_height, orig_width)]:
     #     # Attempt to set the camera resolution via brute force
     #     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
@@ -151,7 +144,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
     # frames forever
     while True:
-        frame = get_frame(cap, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
+        frame = get_frame(cap, scaler, ones, dilation, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
         if frame is None:
             print("ERROR: could not read from camera!")
             break
