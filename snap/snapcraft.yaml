@@ -17,13 +17,23 @@ architectures:
   - build-on: arm64
   - build-on: armhf
 
-# package-repositories:
-#   - type: apt
-#     formats: [deb]
-#     components: [main]
-#     suites: [all]
-#     key-id: 7e6c5dbe
-#     url: https://apt.repos.intel.com/openvino/2020
+package-repositories:
+  - type: apt
+    formats: [deb]
+    components: [main]
+    suites: [all]
+    key-id: 52ABD6E87E421793971873FFACFA9FC57E6C5DBE
+    url: https://apt.repos.intel.com/openvino/2021
+  - type: apt
+    formats: [deb]
+    path: /
+    key-id: AE09FE4BBD223A84B2CCFCE3F60F4B3D7FA2AF80
+    url: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64
+  - type: apt
+    formats: [deb]
+    path: /
+    key-id: AE09FE4BBD223A84B2CCFCE3F60F4B3D7FA2AF80
+    url: http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64
 
 parts:
   snapcraft-preload:
@@ -34,20 +44,122 @@ parts:
         - gcc-multilib
         - g++-multilib
 
+  opencv-contrib:
+    source: https://github.com/opencv/opencv_contrib.git
+    plugin: dump
+    override-pull: |
+      snapcraftctl pull
+      cd ..
+      mv $SNAPCRAFT_PART_SRC opencv_contrib
+      mkdir $SNAPCRAFT_PART_SRC
+      mv opencv_contrib $SNAPCRAFT_PART_SRC/opencv_contrib
+    prime: [-*]
+
   opencv:
+    after: [opencv-contrib]
     source: https://github.com/opencv/opencv.git
-    source-tag: '4.5.0'
+    source-tag: '4.5.1'
     plugin: cmake
+    build-environment:
+      - INTEL_OPENVINO_DIR: /opt/intel/openvino_2021.2.200
+      - INTEL_CVSDK_DIR: /opt/intel/openvino_2021.2.200
+      - InferenceEngine_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/share
+      - ARCH_ROOT_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64/arch_descriptions
+      - HDDL_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl
+      - KMB_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl_unite
+      - TBB_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb
+      - ngraph_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/cmake
+      - LD_LIBRARY_PATH: >-
+          /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/lib:
+          /opt/intel/opencl:
+          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl/lib:
+          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/gna/lib:
+          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:
+          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:
+          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
     configflags:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_BUILD_TYPE=Release
+      - -DOPENCV_EXTRA_MODULES_PATH=$SNAPCRAFT_STAGE/opencv_contrib/modules
       - -DBUILD_opencv_apps=OFF
+      - -DBUILD_opencv_legacy=OFF
+      # START contrib modules
+      - -DBUILD_opencv_alphamat=OFF
+      - -DBUILD_opencv_aruco=OFF
+      - -DBUILD_opencv_bgsegm=OFF
+      - -DBUILD_opencv_bioinspired=OFF
+      - -DBUILD_opencv_ccalib=OFF
+      - -DBUILD_opencv_cnn_3dobj=OFF
+      # - -DBUILD_opencv_cudaarithm=OFF
+      # - -DBUILD_opencv_cudabgsegm=OFF
+      # - -DBUILD_opencv_cudacodec=OFF
+      # - -DBUILD_opencv_cudafeatures3d=OFF
+      # - -DBUILD_opencv_cudafilters=OFF
+      # - -DBUILD_opencv_cudaimgproc=OFF
+      # - -DBUILD_opencv_cudalegacy=OFF
+      # - -DBUILD_opencv_cudaobjdetect=OFF
+      # - -DBUILD_opencv_cudaoptflow=OFF
+      # - -DBUILD_opencv_cudastereo=OFF
+      # - -DBUILD_opencv_cudawarping=OFF
+      - -DBUILD_opencv_cvv=OFF
+      - -DBUILD_opencv_datasets=OFF
+      - -DBUILD_opencv_dnn_objdetect=OFF
+      - -DBUILD_opencv_dnn_superres=OFF
+      - -DBUILD_opencv_dnns_easily_fooled=OFF
+      - -DBUILD_opencv_dpm=OFF
+      - -DBUILD_opencv_face=OFF
+      - -DBUILD_opencv_freetype=OFF
+      - -DBUILD_opencv_fuzzy=OFF
+      - -DBUILD_opencv_hdf=OFF
+      - -DBUILD_opencv_hfs=OFF
+      - -DBUILD_opencv_img_hash=OFF
+      - -DBUILD_opencv_intensity_transform=OFF
+      - -DBUILD_opencv_julia=OFF
+      - -DBUILD_opencv_line_descriptor=OFF
+      - -DBUILD_opencv_matlab=OFF
+      - -DBUILD_opencv_mcc=OFF
+      - -DBUILD_opencv_optflow=OFF
+      - -DBUILD_opencv_ovis=OFF
+      - -DBUILD_opencv_phase_unwrapping=OFF
+      - -DBUILD_opencv_plot=OFF
+      - -DBUILD_opencv_quality=OFF
+      - -DBUILD_opencv_rapid=OFF
+      - -DBUILD_opencv_reg=OFF
+      - -DBUILD_opencv_rgbd=OFF
+      - -DBUILD_opencv_saliency=OFF
+      - -DBUILD_opencv_sfm=OFF
+      - -DBUILD_opencv_shape=OFF
+      - -DBUILD_opencv_stereo=OFF
+      - -DBUILD_opencv_structured_light=OFF
+      - -DBUILD_opencv_superres=OFF
+      - -DBUILD_opencv_surface_matching=OFF
+      - -DBUILD_opencv_text=OFF
+      - -DBUILD_opencv_tracking=OFF
+      - -DBUILD_opencv_videostab=OFF
+      - -DBUILD_opencv_viz=OFF
+      - -DBUILD_opencv_xfeatures2d=OFF
+      - -DBUILD_opencv_ximgproc=OFF
+      - -DBUILD_opencv_xobjdetect=OFF
+      - -DBUILD_opencv_xphoto=OFF
+      # END contrib modules
       - -DBUILD_TESTS=OFF
       - -DBUILD_PERF_TESTS=OFF
+      - -DBUILD_opencv_python3=ON
+      - -DPYTHON_DEFAULT_EXECUTABLE=/usr/bin/python3
+      - -DPYTHON3_EXECUTABLE=/usr/bin/python3
       - -DWITH_FFMPEG=ON
       - -DWITH_GSTREAMER=ON
       - -DWITH_OPENGL=ON
       - -DWITH_VULKAN=ON
+      - -DWITH_CUDA=ON
+      # - -DCUDA_HOST_COMPILER=/usr/bin/gcc-6
+      - -DCUDA_ARCH_BIN=3.5 3.7 5.0 5.2 5.3 6.0 6.1 6.2 7.0 7.2
+      - -DCUDA_ARCH_PTX=3.5 3.7 5.0 5.2 5.3 6.0 6.1 6.2 7.0 7.2
+      - -DOPENCV_DNN_CUDA=ON
+      - -DOPENCV_DNN_OPENCL=ON
+      - -DENABLE_FAST_MATH=1
+      - -DCUDA_FAST_MATH=1
+      - -DWITH_CUBLAS=ON
       - -DWITH_OPENCL=ON
       - -DWITH_OPENCL_SVM=ON
       - -DWITH_EIGEN=ON
@@ -63,27 +175,53 @@ parts:
       - -DWITH_TBB=ON
       - -DWITH_IPP=ON
       - -DWITH_INF_ENGINE=ON
+      - -DWITH_NGRAPH=ON
     build-snaps:
       - cmake
     build-packages:
-      - g++
-      - gcc
-      # - intel-openvino-dev-ubuntu18
-      # - libatlas-base-dev
+      - cuda-11-0
+      - g++-6
+      - gcc-6
+      - gfortran
+      # - intel-openvino-eula-2021.2.200
+      # - intel-openvino-setupvars-2021.2.200
+      # # - intel-openvino-docs-2021.2.200
+      # - intel-openvino-ie-sdk-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-2021.2.200
+      # - intel-openvino-ie-rt-core-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-cpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-gpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-gna-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-vpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-hddl-ubuntu-bionic-2021.2.200
+      # # - intel-openvino-opencv-lib-ubuntu-bionic-2021.2.200
+      # # - intel-openvino-opencv-generic-2021.2.200
+      # - intel-openvino-gstreamer-rt-ubuntu-bionic-2021.2.200
+      # - intel-openvino-gva-rt-ubuntu-bionic-2021.2.200
+      - libatlas-base-dev
       - libavcodec-dev
       - libavformat-dev
       - libavresample-dev
-      # - libblas-dev
+      - libblas-dev
+      - libcudnn7-dev
+      - libdc1394-22-dev
       - libeigen3-dev
+      - libgflags-dev
       - libglu1-mesa-dev
+      - libgoogle-glog-dev
       - libgstreamer-plugins-base1.0-dev
       - libgstreamer1.0-dev
       - libgtk-3-dev
       - libjpeg-dev
       - liblapack-dev
-      # - libopenblas-dev
+      - libopenblas-dev
       - libopenexr-dev
+      - libopenjp2-7-dev
+      - libopenjp2-tools
+      - libopenjpip-dec-server
+      - libopenjpip-server
       - libpng-dev
+      - libprotobuf-dev
       - libswscale-dev
       - libtbb-dev
       - libtiff-dev
@@ -96,19 +234,71 @@ parts:
       - python3-dev
       - python3-numpy
     stage-packages:
-      # - intel-openvino-runtime-ubuntu18
+      # - intel-openvino-eula-2021.2.200
+      # - intel-openvino-setupvars-2021.2.200
+      # # - intel-openvino-docs-2021.2.200
+      # # - intel-openvino-ie-sdk-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-2021.2.200
+      # - intel-openvino-ie-rt-core-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-cpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-gpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-gna-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-vpu-ubuntu-bionic-2021.2.200
+      # - intel-openvino-ie-rt-hddl-ubuntu-bionic-2021.2.200
+      # # - intel-openvino-opencv-lib-ubuntu-bionic-2021.2.200
+      # # - intel-openvino-opencv-generic-2021.2.200
+      # - intel-openvino-gstreamer-rt-ubuntu-bionic-2021.2.200
+      # - intel-openvino-gva-rt-ubuntu-bionic-2021.2.200
+      # - libaccinj64-9.1
       - libatlas3-base
       - libavcodec57
       - libavformat57
       - libavresample3
-      # - libblas3
+      - libblas3
+      # - libcublas9.1
+      # # - libcublaslt9.1
+      # - libcudart9.1
+      - libcudnn7
+      # - libcufft9.1
+      # - libcufftw9.1
+      # - libcuinj64-9.1
+      # - libcurand9.1
+      # - libcusolver9.1
+      # # - libcusolvermg9.1
+      # - libcusparse9.1
+      - libdc1394-22
+      - libgflags2.2
       - libglu1-mesa
+      - libgoogle-glog0v5
       - libgstreamer-plugins-base1.0-0
       - libgstreamer1.0-0
       - libjpeg8
-      # - libopenblas-base
+      - liblapack3
+      # - libnppc9.1
+      # - libnppial9.1
+      # - libnppicc9.1
+      # - libnppicom9.1
+      # - libnppidei9.1
+      # - libnppif9.1
+      # - libnppig9.1
+      # - libnppim9.1
+      # - libnppist9.1
+      # - libnppisu9.1
+      # - libnppitc9.1
+      # - libnpps9.1
+      # - libnvblas9.1
+      # # - libnvjpeg9.1
+      # - libnvrtc9.1
+      # - libnvtoolsext1
+      # - libnvvm3
+      - libopenblas-base
       - libopenexr22
+      - libopenjp2-tools
+      - libopenjpip7
+      - libopenjpip-dec-server
+      - libopenjpip-server
       - libpng16-16
+      - libprotobuf10
       - libswscale4
       - libtbb2
       - libtiff5
@@ -121,13 +311,14 @@ parts:
 
   fakecam:
     after: [opencv]
-    source: fakecam
+    source: src
     plugin: python
     python-version: python3
     requirements: [requirements.txt]
     build-packages:
       - libgirepository1.0-dev
     stage-packages:
+      - cuda-11-0
       - freeglut3
       - gir1.2-glib-2.0
       - gir1.2-gst-plugins-base-1.0
@@ -139,13 +330,20 @@ parts:
       - libgirepository-1.0-1
       - libglu1-mesa
       - libgpm2
+      - libgtk2.0-0
       - libice6
+      - libpulse-mainloop-glib0
       - libslang2
       - libsm6
       - libx11-6
       - libxext6
+      - libxkbcommon-x11-0
       - libxrender1
       - python3-gi
+    stage:
+      - -opt/nvidia/nsight-systems/*/target-linux-armv8
+      - -opt/nvidia/nsight-compute/2020.3.1/target/*-a64
+      - -opt/nvidia/nsight-compute/2020.3.1/target/*-ppc64le
 
   other-progs:
     plugin: nil
@@ -154,13 +352,24 @@ parts:
       - mesa-opencl-icd
       - ocl-icd-libopencl1
 
-  cleanup:
-    after: [fakecam, other-progs]  # Make this part run last; list all your other parts here
+  fclaunch:
+    source: .
     plugin: nil
-    build-snaps: [gnome-3-28-1804, gtk-common-themes]  # List all content-snaps you're using here
+    override-pull: |
+      cat <<'EOF' > fclaunch
+      #!/bin/bash
+      env LD_LIBRARY_PATH=/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/usr/lib:/lib/$SNAPCRAFT_ARCH_TRIPLET:/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} "$@"
+      EOF
+    override-build: |
+      install -m755 -D -t $SNAPCRAFT_PART_INSTALL/bin fclaunch
+
+  cleanup:
+    after: [fakecam, other-progs]
+    plugin: nil
+    build-snaps: [gnome-3-28-1804, gtk-common-themes]
     override-prime: |
       set -eux
-      for snap in "gnome-3-28-1804" "gtk-common-themes"; do  # List all content-snaps you're using here
+      for snap in "gnome-3-28-1804" "gtk-common-themes"; do
         cd "/snap/$snap/current"
         [ -d "lib" ] && find ./lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
         [ -d "usr/lib" ] && find ./usr/lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
@@ -175,11 +384,16 @@ parts:
 
   precompile:
     after: [fakecam, opencv, cleanup]
+    # after: [fakecam, cleanup]
     plugin: nil
     override-prime: |
-      python3 -m compileall -q -j$SNAPCRAFT_PARALLEL_BUILD_COUNT $SNAPCRAFT_PRIME
+      python3 -m compileall -q -j$SNAPCRAFT_PARALLEL_BUILD_COUNT $SNAPCRAFT_PRIME/lib/python3
+      python3 -m compileall -q -j$SNAPCRAFT_PARALLEL_BUILD_COUNT $SNAPCRAFT_PRIME/usr/lib/python3
+      python3 -m compileall -q -j$SNAPCRAFT_PARALLEL_BUILD_COUNT $SNAPCRAFT_PRIME/usr/lib/python3.6
 
 layout:
+  /etc/OpenCL:
+    bind: $SNAP/etc/OpenCL
   /usr/include/clc:
     bind: $SNAP/usr/include/clc
   /usr/lib/clc:
@@ -190,6 +404,15 @@ layout:
     bind-file: $SNAP/usr/share/libdrm/amdgpu.ids
   /opt/intel:
     bind: $SNAP/opt/intel
+
+# environment:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/lib:
+  # /opt/intel/opencl:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl/lib:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/gna/lib:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:
+  # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
 
 apps:
   clinfo:
@@ -207,7 +430,7 @@ apps:
       - x11
 
   fakecam:
-    command: bin/fakecamcli
+    command: bin/fclaunch $SNAP/bin/fakecamcli
     extensions: [gnome-3-28]
     plugs:
       - camera
@@ -221,7 +444,7 @@ apps:
       - x11
 
   gui:
-    command: bin/fakecamgui
+    command: bin/fclaunch $SNAP/bin/fakecamgui
     command-chain:
       - bin/snapcraft-preload
     extensions: [gnome-3-28]
