@@ -1,5 +1,5 @@
 name: fakecam
-version: '2.2.1'
+adopt-info: fakecam
 summary: Fakecam
 description: |
   Fake background removing camera for streaming and video
@@ -179,7 +179,7 @@ parts:
     build-snaps:
       - cmake
     build-packages:
-      - cuda-11-0
+      - cuda-11-2
       - g++-6
       - gcc-6
       - gfortran
@@ -234,6 +234,7 @@ parts:
       - python3-dev
       - python3-numpy
     stage-packages:
+      - cuda-runtime-11-2
       # - intel-openvino-eula-2021.2.200
       # - intel-openvino-setupvars-2021.2.200
       # # - intel-openvino-docs-2021.2.200
@@ -255,17 +256,7 @@ parts:
       - libavformat57
       - libavresample3
       - libblas3
-      # - libcublas9.1
-      # # - libcublaslt9.1
-      # - libcudart9.1
-      - libcudnn7
-      # - libcufft9.1
-      # - libcufftw9.1
-      # - libcuinj64-9.1
-      # - libcurand9.1
-      # - libcusolver9.1
-      # # - libcusolvermg9.1
-      # - libcusparse9.1
+      - libcudnn8
       - libdc1394-22
       - libgflags2.2
       - libglu1-mesa
@@ -274,23 +265,6 @@ parts:
       - libgstreamer1.0-0
       - libjpeg8
       - liblapack3
-      # - libnppc9.1
-      # - libnppial9.1
-      # - libnppicc9.1
-      # - libnppicom9.1
-      # - libnppidei9.1
-      # - libnppif9.1
-      # - libnppig9.1
-      # - libnppim9.1
-      # - libnppist9.1
-      # - libnppisu9.1
-      # - libnppitc9.1
-      # - libnpps9.1
-      # - libnvblas9.1
-      # # - libnvjpeg9.1
-      # - libnvrtc9.1
-      # - libnvtoolsext1
-      # - libnvvm3
       - libopenblas-base
       - libopenexr22
       - libopenjp2-tools
@@ -308,17 +282,19 @@ parts:
       - libwebp6
       - mesa-opencl-icd
       - va-driver-all
+    stage:
+      - -usr/bin/python3
 
   fakecam:
     after: [opencv]
     source: src
+    parse-info: [setup.py]
     plugin: python
     python-version: python3
     requirements: [requirements.txt]
     build-packages:
       - libgirepository1.0-dev
     stage-packages:
-      - cuda-11-0
       - freeglut3
       - gir1.2-glib-2.0
       - gir1.2-gst-plugins-base-1.0

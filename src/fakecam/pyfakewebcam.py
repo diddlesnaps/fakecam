@@ -31,16 +31,21 @@ class FakeWebcam:
 
         self._settings = _v4l2.v4l2_format()
         self._settings.type = _v4l2.V4L2_BUF_TYPE_VIDEO_OUTPUT
-        self._settings.fmt.pix.pixelformat = _v4l2.V4L2_PIX_FMT_RGB24
         self._settings.fmt.pix.width = width
         self._settings.fmt.pix.height = height
         self._settings.fmt.pix.field = _v4l2.V4L2_FIELD_NONE
-        self._settings.fmt.pix.bytesperline = width * 2
-        self._settings.fmt.pix.sizeimage = width * height * 2
         self._settings.fmt.pix.colorspace = _v4l2.V4L2_COLORSPACE_JPEG
 
-        self._buffer = np.zeros((self._settings.fmt.pix.height, 2*self._settings.fmt.pix.width), dtype=np.uint8)
+        # YUV
+        self._settings.fmt.pix.pixelformat = _v4l2.V4L2_PIX_FMT_YUYV
+        self._settings.fmt.pix.bytesperline = width * 2 # YUV
+        self._settings.fmt.pix.sizeimage = width * height * 2 # YUV
+        self._buffer = np.zeros((self._settings.fmt.pix.height, 2*self._settings.fmt.pix.width), dtype=np.uint8) # YUV
         self._yuv = np.zeros((self._settings.fmt.pix.height, self._settings.fmt.pix.width, 3), dtype=np.uint8)
+        self._ones = np.ones((self._settings.fmt.pix.height, self._settings.fmt.pix.width, 1), dtype=np.uint8)
+        self._rgb2yuv = np.array([[0.299, 0.587, 0.114, 0],
+                                  [-0.168736, -0.331264, 0.5, 128],
+                                  [0.5, -0.418688, -0.081312, 128]])
 
         if fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings) < 0:
             print("ERROR: unable to set video format!")
@@ -64,22 +69,16 @@ class FakeWebcam:
         # if frame.shape[2] != self._channels:
         #     raise Exception('num frame channels does not match the num channels of webcam device: {}!={}\n'.format(self._channels, frame.shape[2]))
 
-        # t1 = timeit.default_timer()
-        # self._yuv = cv2.cvtColor(frame, cv2.COLOR_RGB2YUV).get().astype(np.uint8)
-        # t2 = timeit.default_timer()
-        # sys.stderr.write('conversion time: {}\n'.format(t2-t1))
+        # YUYV
+        frame = np.concatenate((cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).get().astype(np.uint8), self._ones), axis=2)
+        frame = np.dot(frame, self._rgb2yuv.T)
+        self._yuv[:,:,:] = np.clip(frame, 0, 255)
+        for i in range(self._settings.fmt.pix.height):
+            self._buffer[i,::2] = self._yuv[i,:,0]
+            self._buffer[i,1::4] = self._yuv[i,::2,1]
+            self._buffer[i,3::4] = self._yuv[i,::2,2]
 
-        # t1 = timeit.default_timer()
-        # for i in range(self._settings.fmt.pix.height):
-        #     self._buffer[i,::2] = self._yuv[i,:,0]
-        #     self._buffer[i,1::4] = self._yuv[i,::2,1]
-        #     self._buffer[i,3::4] = self._yuv[i,::2,2]
-        # t2 = timeit.default_timer()
-        # sys.stderr.write('pack time: {}\n'.format(t2-t1))
-
-        # os.write(self._video_device, self._buffer.tostring())
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        written = os.write(self._video_device, frame.get().astype(np.uint8).tostring())
+        written = os.write(self._video_device, self._buffer.tostring())
         if written < 0:
             print("ERROR: could not write to output device!")
             os.close(self._video_device)

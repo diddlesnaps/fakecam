@@ -15,7 +15,9 @@ HD = (720, 1280)
 NTSC = (480, 720)
 
 
-cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'model.pb'))
+cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
+cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
 output_stride = 16
 internal_resolution = 0.5
@@ -27,7 +29,7 @@ def get_mask(frame, scaler, dilation, height, width):
                                  size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0),
                                  swapRB=True, crop=False)
     cvNet.setInput(blob)
-    results = cvNet.forward("float_segments/conv")[0][0]
+    results = cvNet.forward()[0][0]
 
     segment_logits = cv2.UMat(results)
     scaled_segment_scores = scaler.scale_and_crop_to_input_tensor_shape(

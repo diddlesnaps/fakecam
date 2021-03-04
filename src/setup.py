@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='fakecam',
-    version='2.2.1',
+    version='3.0.0',
     url='https://elder.dev/posts/open-source-virtual-background/',
     author='Daniel Llewellyn',
     author_email='diddledan@ubuntu.com',
@@ -12,7 +12,7 @@ setup(
     package_data={"fakecam": [
         "ui/fakecam.glade",
         "ui/hologram.png",
-        "model.pb",
+        "frozen_graph.pb",
     ]},
     install_requires=[
         "numpy==1.19.4",
