@@ -69,14 +69,7 @@ parts:
       - KMB_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl_unite
       - TBB_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb
       - ngraph_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/cmake
-      - LD_LIBRARY_PATH: >-
-          /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/lib:
-          /opt/intel/opencl:
-          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl/lib:
-          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/gna/lib:
-          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:
-          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:
-          /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
+      - LD_LIBRARY_PATH: /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/lib:/opt/intel/opencl:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/gna/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
     configflags:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_BUILD_TYPE=Release
@@ -153,8 +146,8 @@ parts:
       - -DWITH_VULKAN=ON
       - -DWITH_CUDA=ON
       # - -DCUDA_HOST_COMPILER=/usr/bin/gcc-6
-      - -DCUDA_ARCH_BIN=3.5 3.7 5.0 5.2 5.3 6.0 6.1 6.2 7.0 7.2
-      - -DCUDA_ARCH_PTX=3.5 3.7 5.0 5.2 5.3 6.0 6.1 6.2 7.0 7.2
+      - -DCUDA_ARCH_BIN=5.0 6.0 7.0
+      - -DCUDA_ARCH_PTX=3.5 7.0
       - -DOPENCV_DNN_CUDA=ON
       - -DOPENCV_DNN_OPENCL=ON
       - -DENABLE_FAST_MATH=1
