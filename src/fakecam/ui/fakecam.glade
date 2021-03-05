@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkFileFilter" id="jpeg_images_filter">
@@ -8,42 +8,38 @@
     </mime-types>
   </object>
   <object class="GtkWindow" id="MainWindow">
-    <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Fakecam</property>
-    <property name="default_width">720</property>
-    <property name="default_height">640</property>
-    <property name="icon_name">camera-photo</property>
+    <property name="can-focus">False</property>
+    <property name="default-width">720</property>
+    <property name="default-height">640</property>
+    <property name="icon-name">camera-photo</property>
     <signal name="destroy" handler="onDestroy" swapped="no"/>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
+        <property name="margin-bottom">10</property>
         <property name="orientation">vertical</property>
         <property name="spacing">5</property>
         <child>
           <object class="GtkMenuBar">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <child>
               <object class="GtkMenuItem" id="fileMenuItem">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes">_File</property>
-                <property name="use_underline">True</property>
+                <property name="use-underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="quitMenuItem">
-                        <property name="label">gtk-quit</property>
+                      <object class="GtkMenuItem" id="quitMenuItem">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">E_xit</property>
+                        <property name="use-underline">True</property>
                         <signal name="activate" handler="onDestroy" swapped="no"/>
                       </object>
                     </child>
@@ -54,20 +50,19 @@
             <child>
               <object class="GtkMenuItem">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="label" translatable="yes">_Help</property>
-                <property name="use_underline">True</property>
+                <property name="use-underline">True</property>
                 <child type="submenu">
                   <object class="GtkMenu">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="aboutMenuItem">
-                        <property name="label">gtk-about</property>
+                      <object class="GtkMenuItem" id="aboutMenuItem">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="use_underline">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">_About</property>
+                        <property name="use-underline">True</property>
                         <signal name="activate" handler="onAbout" swapped="no"/>
                       </object>
                     </child>
@@ -85,7 +80,7 @@
         <child>
           <object class="GtkViewport" id="camera_viewport">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <child>
               <placeholder/>
             </child>
@@ -97,80 +92,159 @@
           </packing>
         </child>
         <child>
+          <!-- n-columns=3 n-rows=6 -->
           <object class="GtkGrid">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="halign">center</property>
             <property name="valign">end</property>
-            <property name="row_spacing">5</property>
-            <property name="column_spacing">5</property>
+            <property name="row-spacing">5</property>
+            <property name="column-spacing">5</property>
             <child>
-              <object class="GtkButton">
-                <property name="label" translatable="yes">_Start Fakecam</property>
-                <property name="name">startBtn</property>
+              <object class="GtkButton" id="donate_button">
+                <property name="label" translatable="yes">_Donate to the project</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-underline">True</property>
+                <signal name="clicked" handler="onDonateButtonClicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="start_button">
+                <property name="label" translatable="yes">_Start Fakecam</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
                 <property name="halign">center</property>
                 <property name="valign">center</property>
-                <property name="use_underline">True</property>
+                <property name="use-underline">True</property>
                 <signal name="clicked" handler="onStartButtonClicked" swapped="no"/>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">4</property>
-                <property name="width">3</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkImage">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="pixbuf">hologram.png</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="mirror_toggle">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <signal name="state-set" handler="onMirrorToggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkAccelLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">Apply _Hologram effect:</property>
-                <property name="use_underline">True</property>
-                <property name="mnemonic_widget">hologram_toggle</property>
+                <property name="label" translatable="yes">_Mirror the image:</property>
+                <property name="use-underline">True</property>
+                <property name="mnemonic-widget">mirror_toggle</property>
+                <property name="accel-widget">mirror_toggle</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAccelLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Apply Hologram _effect:</property>
+                <property name="use-underline">True</property>
+                <property name="mnemonic-widget">hologram_toggle</property>
+                <property name="accel-widget">hologram_toggle</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAccelLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">Add _greenscreen:</property>
+                <property name="use-underline">True</property>
+                <property name="mnemonic-widget">greenscreen_toggle</property>
+                <property name="accel-widget">greenscreen_toggle</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkSwitch" id="hologram_toggle">
-                <property name="name">hologramToggle</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
+                <property name="can-focus">True</property>
                 <property name="halign">center</property>
                 <property name="valign">center</property>
                 <signal name="state-set" handler="onHologramToggled" swapped="no"/>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">2</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSwitch" id="greenscreen_toggle">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <signal name="state-set" handler="onGreenscreenToggled" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkAccelLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="valign">center</property>
                 <property name="label" translatable="yes">_Background image:</property>
-                <property name="use_underline">True</property>
-                <property name="mnemonic_widget">background_chooser</property>
+                <property name="use-underline">True</property>
+                <property name="mnemonic-widget">background_chooser</property>
+                <property name="accel-widget">background_chooser</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkFileChooserButton" id="background_chooser">
-                <property name="name">bgChooserButton</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
                 <property name="filter">jpeg_images_filter</property>
@@ -178,90 +252,49 @@
                 <signal name="file-set" handler="onSelectedBackground" swapped="no"/>
               </object>
               <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">1</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
               <object class="GtkButton" id="reset_button">
                 <property name="label" translatable="yes">_Reset</property>
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_underline">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-underline">True</property>
                 <signal name="clicked" handler="onResetBackground" swapped="no"/>
               </object>
               <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">0</property>
+                <property name="left-attach">2</property>
+                <property name="top-attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBox" id="video_source_combobox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <signal name="changed" handler="onCameraChanged" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
               <object class="GtkAccelLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">end</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">_Mirror the image:</property>
-                <property name="use_underline">True</property>
-                <property name="mnemonic_widget">mirror_toggle</property>
+                <property name="label" translatable="yes">Video _source:</property>
+                <property name="use-underline">True</property>
+                <property name="mnemonic-widget">video_source_combobox</property>
+                <property name="accel-widget">video_source_combobox</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="mirror_toggle">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <signal name="state-set" handler="onMirrorToggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkImage">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">hologram.png</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkAccelLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">end</property>
-                <property name="valign">center</property>
-                <property name="label" translatable="yes">Add _greenscreen:</property>
-                <property name="use_underline">True</property>
-                <property name="mnemonic_widget">greenscreen_toggle</property>
-              </object>
-              <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSwitch" id="greenscreen_toggle">
-                <property name="name">hologramToggle</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <signal name="state-set" handler="onGreenscreenToggled" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="top_attach">1</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
@@ -279,35 +312,27 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkAboutDialog" id="AboutDialog">
-    <property name="can_focus">False</property>
-    <property name="modal">True</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="icon_name">camera-photo</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">MainWindow</property>
-    <property name="program_name">Fakecam</property>
-    <property name="version">1.0.0</property>
-    <property name="copyright" translatable="yes">Copyright © 2020 Daniel Llewellyn
-Copyright © 2020 Benjamin Elder</property>
-    <property name="comments" translatable="yes">Virtual Backgrounds for your video conferences and streaming presentations</property>
-    <property name="authors">Benjamin Elder
-Daniel Llewellyn</property>
-    <property name="logo_icon_name">camera-photo</property>
-    <property name="license_type">mit-x11</property>
     <child type="titlebar">
       <placeholder/>
     </child>
+  </object>
+  <object class="GtkAboutDialog" id="AboutDialog">
+    <property name="can-focus">False</property>
+    <property name="modal">True</property>
+    <property name="destroy-with-parent">True</property>
+    <property name="icon-name">camera-photo</property>
+    <property name="type-hint">dialog</property>
+    <property name="transient-for">MainWindow</property>
+    <property name="logo-icon-name">camera-photo</property>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
             <child>
               <placeholder/>
             </child>
@@ -325,6 +350,9 @@ Daniel Llewellyn</property>
           <placeholder/>
         </child>
       </object>
+    </child>
+    <child type="titlebar">
+      <placeholder/>
     </child>
   </object>
 </interface>

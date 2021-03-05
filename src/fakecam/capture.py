@@ -7,7 +7,7 @@ import numpy as np
 from multiprocessing import Queue
 
 from .pyfakewebcam import FakeWebcam
-from .types import QueueDict
+from .types import CommandQueueDict
 from .bodypix_functions import BodypixScaler, to_mask_tensor
 
 FHD = (1080, 1920)
@@ -97,7 +97,7 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
     return frame
 
 
-def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", background: str = None,
+def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
@@ -144,6 +144,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
         background_data = cv2.UMat(cv2.imread(background))
         background_scaled = cv2.resize(background_data, (width, height))
 
+    first_frame = True
     # frames forever
     while True:
         frame = get_frame(cap, scaler, ones, dilation, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
@@ -156,8 +157,8 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
         # fake webcam expects RGB
         # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         fake.schedule_frame(frame)
-        if queue is not None and not queue.empty():
-            data = queue.get(False)
+        if command_queue is not None and not command_queue.empty():
+            data = command_queue.get(False)
 
             if data["background"] is None:
                 background_scaled = None
@@ -170,3 +171,7 @@ def start(queue: "Queue[QueueDict]" = None, camera: str = "/dev/video0", backgro
 
             use_hologram = data["hologram"]
             use_mirror = data["mirror"]
+
+        if first_frame and return_queue is not None:
+            first_frame = False
+            return_queue.put(True)

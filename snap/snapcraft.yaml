@@ -203,7 +203,7 @@ parts:
       - libavformat-dev
       - libavresample-dev
       - libblas-dev
-      - libcudnn7-dev
+      - libcudnn8-dev
       - libdc1394-22-dev
       - libeigen3-dev
       - libgflags-dev
@@ -288,10 +288,12 @@ parts:
   fakecam:
     after: [opencv]
     source: src
-    parse-info: [setup.py]
     plugin: python
     python-version: python3
     requirements: [requirements.txt]
+    override-build: |
+      snapcraftctl build
+      snapcraftctl set-version $(python3 fakecam/about.py)
     build-packages:
       - libgirepository1.0-dev
     stage-packages:

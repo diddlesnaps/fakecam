@@ -1,13 +1,13 @@
 import configparser
+import subprocess
 import multiprocessing
 from multiprocessing.queues import Queue
 
 import gi
 import os, sys
 
-from . import gstreamer
-from .. import capture, lang
-from ..types import QueueDict
+from .. import about, capture, lang
+from ..types import CommandQueueDict
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gst", "1.0")
@@ -16,10 +16,10 @@ from gi.repository import GLib, Gtk, Gst
 CONFIG_FILE = os.path.expanduser("~/config.ini")
 config = configparser.SafeConfigParser()
 
-
 class MainWindow:
     p = None
-    queue: "Queue[QueueDict]" = multiprocessing.Queue()
+    command_queue: "Queue[CommandQueueDict]" = multiprocessing.Queue()
+    return_queue: "Queue[bool]" = multiprocessing.Queue()
     pipeline = None
     builder = None
     started = False
@@ -41,7 +41,17 @@ class MainWindow:
         self.player = None
         builder = Gtk.Builder()
         builder.add_from_file(os.path.join(os.path.dirname(__file__), "fakecam.glade"))
-        window = builder.get_object("MainWindow")
+
+        aboutDlg = builder.get_object("AboutDialog")
+        aboutDlg.set_program_name(about.name)
+        aboutDlg.set_version(about.version)
+        aboutDlg.set_copyright(about.copyright)
+        aboutDlg.set_comments(about.description)
+        aboutDlg.set_license(about.license)
+        aboutDlg.set_wrap_license(True)
+        aboutDlg.set_authors(about.authors)
+        aboutDlg.set_website(about.project_url)
+        aboutDlg.set_website_label("{project} homepage".format(project=about.name))
 
         if os.path.isfile(CONFIG_FILE):
             config.read(CONFIG_FILE)
@@ -78,17 +88,39 @@ class MainWindow:
         if not config.has_section("main"):
             config.add_section("main")
 
+        devices = []
+        v4ldir = "/sys/class/video4linux"
+        for file in os.listdir(v4ldir):
+            if file == 'video20':
+                continue
+            device = os.path.join("/dev", file)
+            if os.access(device, os.R_OK):
+                devices.append(device)
+        devices.sort()
+        cameraList = Gtk.ListStore(str, str)
+        for device in devices:
+            with open(os.path.join(v4ldir, os.path.basename(device), "name")) as name_file:
+                device_name = name_file.readline().strip()
+                cameraList.append([device, "{name} ({device})".format(name=device_name, device=device)])
+        cameraRenderer = Gtk.CellRendererText()
+        video_source = builder.get_object("video_source_combobox")
+        video_source.set_model(cameraList)
+        video_source.pack_start(cameraRenderer, True)
+        video_source.add_attribute(cameraRenderer, "text", 1)
+        video_source.set_active(devices.index(self.camera))
+
         self.builder = builder
 
-        if not os.access(self.camera, os.R_OK):
-            dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
-                                       Gtk.ButtonsType.OK, "Camera device not accessible")
-            dialog.format_secondary_text(lang.CONNECT_INTERFACE + "\n\nThe fakecam app will now close.")
-            dialog.run()
-            dialog.destroy()
-            self.on_quit()
-            sys.exit(1)
-        elif not os.access("/dev/video20", os.W_OK):
+        # if not os.access(self.camera, os.R_OK):
+        #     dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
+        #                                Gtk.ButtonsType.OK, "Camera device not accessible")
+        #     dialog.format_secondary_text(lang.CONNECT_INTERFACE + "\n\nThe fakecam app will now close.")
+        #     dialog.run()
+        #     dialog.destroy()
+        #     self.on_quit()
+        #     sys.exit(1)
+        # el
+        if not os.access("/dev/video20", os.W_OK):
             dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.ERROR,
                                        Gtk.ButtonsType.OK, "Fake camera device not accessible")
             dialog.format_secondary_text(lang.INSTRUCTIONS)
@@ -105,9 +137,27 @@ class MainWindow:
                 "onHologramToggled": self.on_hologram_toggled,
                 "onMirrorToggled": self.on_mirror_toggled,
                 "onStartButtonClicked": self.on_startbutton_clicked,
+                "onDonateButtonClicked": self.on_donatebutton_clicked,
+                "onCameraChanged": self.on_camera_changed,
             }
             builder.connect_signals(handlers)
-            window.show_all()
+            builder.get_object("MainWindow").show_all()
+
+    def on_donatebutton_clicked(self, bus):
+        subprocess.call(["xdg-open", about.donate_url])
+
+    def on_camera_changed(self, selection):
+        index = selection.get_active()
+        model = selection.get_model()
+        device = model[index][0]
+        if self.camera != device:
+            started = self.started
+            if started:
+                self.stop()
+            self.camera = device
+            config.set("main", "camera", device)
+            if started:
+                self.start()
 
     def on_message(self, bus, message):
         t = message.type
@@ -134,7 +184,7 @@ class MainWindow:
 
     def update_worker(self):
         if self.started is True:
-            self.queue.put_nowait(QueueDict(
+            self.command_queue.put_nowait(CommandQueueDict(
                 background=self.background,
                 hologram=self.use_hologram,
                 mirror=self.use_mirror,
@@ -203,18 +253,22 @@ class MainWindow:
             "background": self.background,
             "use_hologram": self.use_hologram,
             "use_mirror": self.use_mirror,
-            "queue": self.queue,
+            "command_queue": self.command_queue,
+            "return_queue": self.return_queue,
             "resolution": None
         }
         p = multiprocessing.Process(target=capture.start, kwargs=args)
         p.start()
         self.p = p
 
-        GLib.timeout_add_seconds(5, self.try_start_viewer)
+        GLib.timeout_add(100, self.try_start_viewer)
 
     def try_start_viewer(self):
+        if self.return_queue is None or self.return_queue.empty():
+            return True
+        self.return_queue.get(False)
+
         # window = self.builder.get_object("MainWindow")
-        print("Starting gstreamer")
         sink, widget = None, None
         # gtkglsink = Gst.ElementFactory.make("gtkglsink")
         # if gtkglsink is not None:
@@ -229,8 +283,7 @@ class MainWindow:
         widget = sink.get_property("widget")
 
         if sink is None:
-            print("Could not set up gstreamer.")
-            return False
+            return True
 
         viewport = self.builder.get_object("camera_viewport")
         if self.av_widget is not None:
@@ -261,9 +314,8 @@ class MainWindow:
             self.av_src = src
             self.av_conv = conv
             self.av_sink = sink
-        except GLib.Error:
-            print("Error setting up video source")
-            self.on_quit()
+        except:
+            return True
 
         self.pipeline.set_state(Gst.State.PLAYING)
         return False
