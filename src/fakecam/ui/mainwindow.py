@@ -16,6 +16,15 @@ from gi.repository import GLib, Gtk, Gst
 CONFIG_FILE = os.path.expanduser("~/config.ini")
 config = configparser.SafeConfigParser()
 
+resolutions = {
+      "640x480": {"width":  640, "height":  480, "description": "(works with most webcams)"},
+      "720x480": {"width":  720, "height":  480, "description": "(NTSC)"},
+      "720x576": {"width":  720, "height":  576, "description": "(PAL)"},
+     "1280x720": {"width": 1280, "height":  720, "description": "(HD)"},
+    "1920x1080": {"width": 1920, "height": 1080, "description": "(Full HD)"},
+    "3840x2160": {"width": 3840, "height": 2160, "description": "(4k)"},
+}
+
 class MainWindow:
     p = None
     command_queue: "Queue[CommandQueueDict]" = multiprocessing.Queue()
@@ -33,6 +42,7 @@ class MainWindow:
     av_src = None
 
     camera = "/dev/video0"
+    resolution = (1280, 720)
     background = None
     use_hologram = False
     use_mirror = False
@@ -59,6 +69,12 @@ class MainWindow:
             if config.has_section("main"):
                 try:
                     self.camera = config.get("main", "camera")
+                except configparser.NoOptionError:
+                    pass
+
+                try:
+                    resolution = resolutions[config.get("main", "resolution")]
+                    self.resolution = (resolution["width"], resolution["height"])
                 except configparser.NoOptionError:
                     pass
 
@@ -109,6 +125,18 @@ class MainWindow:
         video_source.add_attribute(cameraRenderer, "text", 1)
         video_source.set_active(devices.index(self.camera))
 
+        resolutionList = Gtk.ListStore(str, str, str, int, int)
+        index = 0
+        for title, details in resolutions.items():
+            resolutionList.append([title, title, details["description"], details["width"], details["height"]])
+            index = index + 1
+        resolutionRenderer = Gtk.CellRendererText()
+        resolution_select = builder.get_object("resoution_combobox")
+        resolution_select.set_model(resolutionList)
+        resolution_select.pack_start(resolutionRenderer, True)
+        resolution_select.add_attribute(resolutionRenderer, "text", 2)
+        resolution_select.set_active(list(resolutions).index("x".join(map(str, self.resolution))))
+
         self.builder = builder
 
         # if not os.access(self.camera, os.R_OK):
@@ -139,12 +167,26 @@ class MainWindow:
                 "onStartButtonClicked": self.on_startbutton_clicked,
                 "onDonateButtonClicked": self.on_donatebutton_clicked,
                 "onCameraChanged": self.on_camera_changed,
+                "onResolutionChanged": self.on_resolution_changed,
             }
             builder.connect_signals(handlers)
             builder.get_object("MainWindow").show_all()
 
     def on_donatebutton_clicked(self, bus):
         subprocess.call(["xdg-open", about.donate_url])
+
+    def on_resolution_changed(self, selection):
+        index = selection.get_active()
+        model = selection.get_model()
+        width, height = model[index][3], model[index][4]
+        if self.resolution != (width, height):
+            started = self.started
+            if started:
+                self.stop()
+            self.resolution = (width, height)
+            config.set("main", "resolution", "{width}x{height}".format(width=width, height=height))
+            if started:
+                self.start()
 
     def on_camera_changed(self, selection):
         index = selection.get_active()
@@ -255,7 +297,7 @@ class MainWindow:
             "use_mirror": self.use_mirror,
             "command_queue": self.command_queue,
             "return_queue": self.return_queue,
-            "resolution": None
+            "resolution": self.resolution,
         }
         p = multiprocessing.Process(target=capture.start, kwargs=args)
         p.start()
@@ -303,12 +345,15 @@ class MainWindow:
             # src = Gst.parse_launch("v4l2src device=/dev/video20 ! video/x-raw ! videoconvert")
             src = Gst.ElementFactory.make("v4l2src")
             src.set_property("device", "/dev/video20")
+            jpg = Gst.ElementFactory.make("jpegdec")
             conv = Gst.ElementFactory.make("videoconvert")
             caps = Gst.caps_from_string("video/x-raw")
             pipeline.add(src)
+            pipeline.add(jpg)
             pipeline.add(conv)
             pipeline.add(sink)
-            src.link_filtered(conv, caps)
+            src.link(jpg)
+            jpg.link_filtered(conv, caps)
             conv.link(sink)
             self.pipeline = pipeline
             self.av_src = src
