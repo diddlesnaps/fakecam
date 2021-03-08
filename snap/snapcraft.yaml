@@ -229,7 +229,6 @@ parts:
       - python3-numpy
     stage-packages:
       - on amd64:
-        - cuda-runtime-11-2
         - libcudnn8
       # - intel-openvino-eula-2021.2.200
       # - intel-openvino-setupvars-2021.2.200
@@ -279,6 +278,7 @@ parts:
       - va-driver-all
     stage:
       - -usr/bin/python3
+      - -usr/local/cuda-11.2/*
 
   fakecam:
     after: [opencv]
@@ -289,6 +289,9 @@ parts:
     override-build: |
       snapcraftctl build
       snapcraftctl set-version $(python3 fakecam/about.py)
+    override-prime: |
+      snapcraftctl prime
+      mkdir -p cuda-11.2
     build-packages:
       - libgirepository1.0-dev
     stage-packages:
@@ -313,10 +316,6 @@ parts:
       - libxkbcommon-x11-0
       - libxrender1
       - python3-gi
-    stage:
-      - -opt/nvidia/nsight-systems/*/target-linux-armv8
-      - -opt/nvidia/nsight-compute/2020.3.1/target/*-a64
-      - -opt/nvidia/nsight-compute/2020.3.1/target/*-ppc64le
 
   other-progs:
     plugin: nil
@@ -331,7 +330,7 @@ parts:
     override-pull: |
       cat <<'EOF' > fclaunch
       #!/bin/bash
-      env LD_LIBRARY_PATH=/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/usr/lib:/lib/$SNAPCRAFT_ARCH_TRIPLET:/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} "$@"
+      env LD_LIBRARY_PATH=/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/usr/lib:/lib/$SNAPCRAFT_ARCH_TRIPLET:/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}:$SNAP/cuda-11.2/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/cuda-11.2/local/cuda-11.2/lib64 "$@"
       EOF
     override-build: |
       install -m755 -D -t $SNAPCRAFT_PART_INSTALL/bin fclaunch
@@ -339,14 +338,14 @@ parts:
   cleanup:
     after: [fakecam, other-progs]
     plugin: nil
-    build-snaps: [gnome-3-28-1804, gtk-common-themes]
+    build-snaps: [gnome-3-28-1804, gtk-common-themes, cuda-runtime-11-2-1804]
     override-prime: |
       set -eux
-      for snap in "gnome-3-28-1804" "gtk-common-themes"; do
+      for snap in "gnome-3-28-1804" "gtk-common-themes" "cuda-runtime-11-2-1804"; do
         cd "/snap/$snap/current"
         [ -d "lib" ] && find ./lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
-        [ -d "usr/lib" ] && find ./usr/lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
         [ -d "share" ] && find ./share -type f,l -exec rm -f "$SNAPCRAFT_PRIME/share/{}" "$SNAPCRAFT_PRIME/usr/share/{}" \;
+        [ -d "usr/lib" ] && find ./usr/lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
         [ -d "usr/share" ] && find ./usr/share -type f,l -exec rm -f "$SNAPCRAFT_PRIME/share/{}" "$SNAPCRAFT_PRIME/usr/share/{}" \;
       done
       for CRUFT in bug lintian man; do
@@ -386,6 +385,12 @@ layout:
   # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:
   # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:
   # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
+
+plugs:
+  cuda-runtime-11-2-1804:
+    interface: content
+    target: $SNAP/cuda-11.2
+    default-provider: cuda-runtime-11-2-1804
 
 apps:
   clinfo:
