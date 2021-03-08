@@ -25,8 +25,9 @@ multiplier = 0.5
 
 
 def get_mask(frame, scaler, dilation, height, width):
+    ratio = 640 / height
     blob = cv2.dnn.blobFromImage(frame,
-                                 size=(width, height), scalefactor=1/255, mean=(1.0, 1.0, 1.0),
+                                 size=(227, 227), scalefactor=(1/255)*ratio, mean=(1.0, 1.0, 1.0),
                                  swapRB=True, crop=False)
     cvNet.setInput(blob)
     results = cvNet.forward()[0][0]
@@ -111,9 +112,11 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
 
     if resolution is not None:
         # resolution is supplied by user in width followed by height order
-        (width, height) = resolution
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        (w, h) = resolution
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     else:
         width, height = orig_width, orig_height
 

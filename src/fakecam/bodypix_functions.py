@@ -14,8 +14,8 @@ class BodypixScaler:
         self.ones = cv2.UMat(np.ones((height, width)))
 
 
-    def remove_padding_and_resize_back(self, resized_and_padded):
-        return cv2.resize(resized_and_padded, (self.width, self.height))
+    # def remove_padding_and_resize_back(self, resized_and_padded):
+    #     return cv2.resize(resized_and_padded, (self.width, self.height))
 
 
     def sigmoid(self, x):
@@ -31,7 +31,8 @@ class BodypixScaler:
         if apply_sigmoid_activation:
             in_resized_and_padded = self.sigmoid(in_resized_and_padded)
 
-        return self.remove_padding_and_resize_back(in_resized_and_padded)
+        # return self.remove_padding_and_resize_back(in_resized_and_padded)
+        return in_resized_and_padded
 
 
 def is_valid_input_resolution(resolution, output_stride):
