@@ -41,7 +41,8 @@ class MainWindow:
     av_conv = None
     av_src = None
 
-    camera = "/dev/video0"
+    camera = ""
+    camera_is_set = False
     resolution = (1280, 720)
     background = None
     use_hologram = False
@@ -113,11 +114,22 @@ class MainWindow:
             if os.access(device, os.R_OK):
                 devices.append(device)
         devices.sort()
+        
         cameraList = Gtk.ListStore(str, str)
-        for device in devices:
-            with open(os.path.join(v4ldir, os.path.basename(device), "name")) as name_file:
-                device_name = name_file.readline().strip()
-                cameraList.append([device, "{name} ({device})".format(name=device_name, device=device)])
+        if len(devices) == 0:
+            self.camera = ""
+            config.set("main", "camera", self.camera)
+            devices.append("")
+            cameraList.append(["", "No camera found"])
+        else:
+            for device in devices:
+                with open(os.path.join(v4ldir, os.path.basename(device), "name")) as name_file:
+                    device_name = name_file.readline().strip()
+                    cameraList.append([device, "{name} ({device})".format(name=device_name, device=device)])
+            if not self.camera in devices:
+                self.camera = devices[0]
+                config.set("main", "camera", self.camera)
+
         cameraRenderer = Gtk.CellRendererText()
         video_source = builder.get_object("video_source_combobox")
         video_source.set_model(cameraList)
@@ -198,6 +210,7 @@ class MainWindow:
                 self.stop()
             self.camera = device
             config.set("main", "camera", device)
+            self.camera_is_set = True
             if started:
                 self.start()
 
