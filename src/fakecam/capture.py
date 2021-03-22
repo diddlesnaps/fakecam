@@ -98,13 +98,13 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
     return frame
 
 
-def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
+def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera_input: str = "/dev/video0", camera_output: str = "/dev/video20", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
     # setup access to the *real* webcam
-    print("Starting capture using device: {camera}".format(camera=camera))
-    cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
+    print("Starting capture using device: {camera}".format(camera=camera_input))
+    cap = cv2.VideoCapture(camera_input, cv2.CAP_V4L2)
     if not cap.isOpened():
-        print("Failed to open {camera}".format(camera=camera))
+        print("Failed to open {camera}".format(camera=camera_input))
         return
 
     orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -134,7 +134,7 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
     #         break
 
     # setup the fake camera
-    fake = FakeWebcam("/dev/video20", width, height)
+    fake = FakeWebcam(camera_output, width, height)
 
     # load the virtual background
     background_scaled = None
