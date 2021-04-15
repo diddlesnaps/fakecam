@@ -7,7 +7,7 @@ description: |
 
   https://elder.dev/posts/open-source-virtual-background/
 
-base: core18
+base: core20
 grade: stable
 confinement: strict
 compression: lzo
@@ -28,12 +28,12 @@ package-repositories:
     formats: [deb]
     path: /
     key-id: AE09FE4BBD223A84B2CCFCE3F60F4B3D7FA2AF80
-    url: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64
+    url: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64
   - type: apt
     formats: [deb]
     path: /
     key-id: AE09FE4BBD223A84B2CCFCE3F60F4B3D7FA2AF80
-    url: http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64
+    url: http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64
 
 parts:
   snapcraft-preload:
@@ -70,7 +70,7 @@ parts:
       - TBB_INSTALL_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb
       - ngraph_DIR: /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/cmake
       - LD_LIBRARY_PATH: /opt/intel/openvino_2021.2.200/deployment_tools/ngraph/lib:/opt/intel/opencl:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/hddl/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/gna/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/mkltiny_lnx/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:/opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
-    configflags:
+    cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_BUILD_TYPE=Release
       - -DOPENCV_EXTRA_MODULES_PATH=$SNAPCRAFT_STAGE/opencv_contrib/modules
@@ -146,8 +146,8 @@ parts:
       - -DWITH_VULKAN=ON
       - -DWITH_CUDA=ON
       # - -DCUDA_HOST_COMPILER=/usr/bin/gcc-6
-      - -DCUDA_ARCH_BIN=5.0 6.0 7.0
-      - -DCUDA_ARCH_PTX=3.5 7.0
+      - '"-DCUDA_ARCH_BIN=5.0 6.0 7.0"'
+      - '"-DCUDA_ARCH_PTX=3.5 7.0"'
       - -DOPENCV_DNN_CUDA=ON
       - -DOPENCV_DNN_OPENCL=ON
       - -DENABLE_FAST_MATH=1
@@ -173,10 +173,10 @@ parts:
       - cmake
     build-packages:
       - on amd64:
-        - cuda-11-2
+        - cuda-11-0
         - libcudnn8-dev
-      - g++-6
-      - gcc-6
+      - g++-7
+      - gcc-7
       - gfortran
       # - intel-openvino-eula-2021.2.200
       # - intel-openvino-setupvars-2021.2.200
@@ -229,6 +229,7 @@ parts:
       - python3-numpy
     stage-packages:
       - on amd64:
+        - cuda-runtime-11-0
         - libcudnn8
       # - intel-openvino-eula-2021.2.200
       # - intel-openvino-setupvars-2021.2.200
@@ -247,9 +248,9 @@ parts:
       # - intel-openvino-gva-rt-ubuntu-bionic-2021.2.200
       # - libaccinj64-9.1
       - libatlas3-base
-      - libavcodec57
-      - libavformat57
-      - libavresample3
+      - libavcodec58
+      - libavformat58
+      - libavresample4
       - libblas3
       - libdc1394-22
       - libgflags2.2
@@ -260,14 +261,14 @@ parts:
       - libjpeg8
       - liblapack3
       - libopenblas-base
-      - libopenexr22
+      - libopenexr24
       - libopenjp2-tools
       - libopenjpip7
       - libopenjpip-dec-server
       - libopenjpip-server
       - libpng16-16
-      - libprotobuf10
-      - libswscale4
+      - libprotobuf17
+      - libswscale5
       - libtbb2
       - libtiff5
       - libv4l-0
@@ -277,14 +278,12 @@ parts:
       - mesa-opencl-icd
       - va-driver-all
     stage:
-      - -usr/bin/python3
       - -usr/local/cuda-11.2/*
 
   fakecam:
     after: [opencv]
     source: src
     plugin: python
-    python-version: python3
     requirements: [requirements.txt]
     override-build: |
       snapcraftctl build
@@ -338,10 +337,11 @@ parts:
   cleanup:
     after: [fakecam, other-progs]
     plugin: nil
-    build-snaps: [gnome-3-28-1804, gtk-common-themes, cuda-runtime-11-2-1804]
+    build-snaps: [gnome-3-38-2004, gtk-common-themes] #, cuda-runtime-11-2-2004]
     override-prime: |
       set -eux
-      for snap in "gnome-3-28-1804" "gtk-common-themes" "cuda-runtime-11-2-1804"; do
+      for snap in "gnome-3-38-2004" "gtk-common-themes"; do
+      # "cuda-runtime-11-2-1804"; do
         cd "/snap/$snap/current"
         [ -d "lib" ] && find ./lib -type f,l -exec rm -f "$SNAPCRAFT_PRIME/lib/{}" "$SNAPCRAFT_PRIME/usr/lib/{}" \;
         [ -d "share" ] && find ./share -type f,l -exec rm -f "$SNAPCRAFT_PRIME/share/{}" "$SNAPCRAFT_PRIME/usr/share/{}" \;
@@ -386,16 +386,16 @@ layout:
   # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/external/tbb/lib:
   # /opt/intel/openvino_2021.2.200/deployment_tools/inference_engine/lib/intel64
 
-plugs:
-  cuda-runtime-11-2-1804:
-    interface: content
-    target: $SNAP/cuda-11.2
-    default-provider: cuda-runtime-11-2-1804
+# plugs:
+#   cuda-runtime-11-2-1804:
+#     interface: content
+#     target: $SNAP/cuda-11.2
+#     default-provider: cuda-runtime-11-2-1804
 
 apps:
   clinfo:
     command: usr/bin/clinfo
-    extensions: [gnome-3-28]
+    extensions: [gnome-3-38]
     plugs:
       - camera
       - desktop
@@ -409,7 +409,7 @@ apps:
 
   fakecam:
     command: bin/fclaunch $SNAP/bin/fakecamcli
-    extensions: [gnome-3-28]
+    extensions: [gnome-3-38]
     plugs:
       - camera
       - desktop
@@ -425,7 +425,7 @@ apps:
     command: bin/fclaunch $SNAP/bin/fakecamgui
     command-chain:
       - bin/snapcraft-preload
-    extensions: [gnome-3-28]
+    extensions: [gnome-3-38]
     plugs:
       - camera
       - desktop
