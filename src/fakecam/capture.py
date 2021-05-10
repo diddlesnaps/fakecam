@@ -1,7 +1,7 @@
 import os
-import signal
 from typing import Tuple
 
+import sys
 import cv2
 import numpy as np
 from multiprocessing import Queue
@@ -16,8 +16,7 @@ NTSC = (480, 720)
 
 
 cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
-cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+
 
 output_stride = 16
 internal_resolution = 0.5
@@ -100,6 +99,21 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
 
 def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
+    sys.stdout = sys.__stdout__
+
+    if cv2.cuda.getCudaEnabledDeviceCount() > 0 and len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_CUDA)) > 0:
+        print("Using CUDA for DNN")
+        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+    elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
+        print("Using Vulkan for DNN")
+        cv2.dnn.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
+        cv2.dnn.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
+    elif cv2.ocl.haveOpenCL():
+        print("Using OpenCL for DNN")
+        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
+
+
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
     cap = cv2.VideoCapture(camera, cv2.CAP_V4L2)
