@@ -1,7 +1,7 @@
 import os
+import signal
 from typing import Tuple
 
-import sys
 import cv2
 import numpy as np
 from multiprocessing import Queue
@@ -16,7 +16,8 @@ NTSC = (480, 720)
 
 
 cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
-
+cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
 output_stride = 16
 internal_resolution = 0.5

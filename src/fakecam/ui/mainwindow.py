@@ -114,7 +114,7 @@ class MainWindow:
             if os.access(device, os.R_OK):
                 devices.append(device)
         devices.sort()
-
+        
         cameraList = Gtk.ListStore(str, str)
         if len(devices) == 0:
             self.camera = ""
