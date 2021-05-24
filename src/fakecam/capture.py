@@ -107,12 +107,16 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
         cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
     elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
         print("Using Vulkan for DNN")
-        cv2.dnn.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
-        cv2.dnn.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
-    elif cv2.ocl.haveOpenCL():
+        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
+        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
+    elif cv2.ocl.haveOpenCL() and cv2.ocl_Device().type() == cv2.ocl.Device_TYPE_GPU:
         print("Using OpenCL for DNN")
+        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
         cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
+    if cv2.ocl.haveOpenCL():
+        print("Using OpenCL for image manipulation")
+        cv2.ocl.setUseOpenCL(True)
 
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
