@@ -27,11 +27,13 @@ CONNECT_INTERFACE = "Your camera is not accessible. You need to manually run the
 
 USAGE = """
 USAGE:
-    fakecam [--input=<camera-device>] [--resolution=<width>x<height>] [--background=<background-file>] [--hologram]
+    fakecam [--input=<camera-device>] [--output=<dummy-device>] [--resolution=<width>x<height>] [--background=<background-file>] [--hologram]
 
 PARAMETERS:
   --help:       display this help document.
   --input:      specify the camera device to use. The default is /dev/video0.
+  --output:     specify the dummy device for output. The default is
+                /dev/video20.
   --resolution: override your camera's default resolution. Must be width and
                 height as numbers separated by an 'x', e.g. '640x480'. May not
                 work reliably.
