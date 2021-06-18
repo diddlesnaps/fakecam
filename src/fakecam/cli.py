@@ -1,10 +1,12 @@
 import getopt
 import multiprocessing
+from multiprocessing.queues import Queue
 import os
 import sys
 
 from . import capture
 from . import lang
+from .types import CommandQueueDict
 
 
 def usage():
@@ -64,17 +66,23 @@ def main():
         print(lang.USING_BACKGROUND_BLUR)
         background = None
 
+    command_queue: "Queue[CommandQueueDict]" = multiprocessing.Queue()
+
     args = {
-        "camera": camera,
         "background": background,
+        "camera": camera,
+        "command_queue": command_queue,
+        "resolution": resolution,
         "use_hologram": use_hologram,
         "use_mirror": use_mirror,
-        "resolution": resolution,
     }
     p = multiprocessing.Process(target=capture.start, kwargs=args)
     try:
         p.start()
         p.join()
     except KeyboardInterrupt:
+        command_queue.put(CommandQueueDict(
+            quit=True,
+        ))
         p.terminate()
         p.join()

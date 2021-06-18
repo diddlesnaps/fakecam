@@ -89,5 +89,8 @@ class FakeWebcam:
         written = os.write(self._video_device, buf)
         if written < 0:
             print("ERROR: could not write to output device!")
-            os.close(self._video_device)
+            self.close()
             sys.exit(1)
+
+    def close(self):
+        os.close(self._video_device)

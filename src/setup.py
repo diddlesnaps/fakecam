@@ -18,7 +18,6 @@ setup(
     ]},
     install_requires=[
         "numpy==1.19.5",
-        # "opencv-python==4.2.0.32",
         "requests==2.25.1",
         "pyfakewebcam==0.1.0",
         "pycairo==1.20.0",

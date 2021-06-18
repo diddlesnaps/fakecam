@@ -1,5 +1,5 @@
 import os
-import signal
+import sys
 from typing import Tuple
 
 import cv2
@@ -81,7 +81,9 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
     mask = get_mask(frame, scaler, dilation, height=height, width=width)
 
     if background is None:
-        background = cv2.GaussianBlur(frame, (61, 61), sigmaX=20, sigmaY=20)
+        background = cv2.resize(frame, (int(width/8), int(height/8)))
+        background = cv2.GaussianBlur(background, (7, 7), sigmaX=20, sigmaY=20)
+        background = cv2.resize(background, (width, height))
 
     if use_hologram:
         frame = hologram_effect(frame)
@@ -182,7 +184,9 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
         if command_queue is not None and not command_queue.empty():
             data = command_queue.get(False)
 
-            if data["background"] is None:
+            if data["quit"]:
+                break
+            elif data["background"] is None:
                 background_scaled = None
             elif data["background"] == "greenscreen":
                 background_scaled = greenscreen_image
@@ -196,4 +200,6 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
 
         if first_frame and return_queue is not None:
             first_frame = False
-            return_queue.put(True)
+            return_queue.put_nowait(True)
+
+    fake.close()
