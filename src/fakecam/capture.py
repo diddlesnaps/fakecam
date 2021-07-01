@@ -14,112 +14,79 @@ FHD = (1080, 1920)
 HD = (720, 1280)
 NTSC = (480, 720)
 
-
-cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
-cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+mlmodel = os.path.join(os.path.dirname(__file__), 'frozen_graph.pb')
+cvNet = cv2.dnn.readNetFromTensorflow(mlmodel)
 
 output_stride = 16
 internal_resolution = 0.5
 multiplier = 0.5
 
+pkgs = [
+    ('ocl'    , cv2.gapi.core.ocl.kernels()),
+    ('cpu'    , cv2.gapi.core.cpu.kernels()),
+]
 
-def get_mask(frame, scaler, dilation, height, width):
-    ratio = 640 / height
-    blob = cv2.dnn.blobFromImage(frame,
-                                 size=(227, 227), scalefactor=(1/255)*ratio, mean=(1.0, 1.0, 1.0),
-                                 swapRB=True, crop=False)
-    cvNet.setInput(blob)
-    results = cvNet.forward()[0][0]
+def get_pipeline(background=None, use_hologram=False, mirror=False):
+    g_in   = cv2.GMat()
+    inputs = cv2.GInferInputs()
+    inputs.setInput('data', g_in)
 
-    segment_logits = cv2.UMat(results)
-    scaled_segment_scores = scaler.scale_and_crop_to_input_tensor_shape(
-        segment_logits, True
-    )
-    mask = to_mask_tensor(scaled_segment_scores, 0.75)
-    mask = cv2.dilate(mask, dilation, iterations=1)
-    mask = cv2.blur(mask, (30, 30))
-    return mask
+    ml_out   = cv2.gapi.infer("net", inputs)
+    segments = ml_out.at("float_segments")
 
+    unscaled = cv2.gapi.resize(segments, g_in.size())
 
-def shift_image(img, dx, dy):
-    img = np.roll(img, dy, axis=0)
-    img = np.roll(img, dx, axis=1)
-    if dy > 0:
-        img[:dy, :] = 0
-    elif dy < 0:
-        img[dy:, :] = 0
-    if dx > 0:
-        img[:, :dx] = 0
-    elif dx < 0:
-        img[:, dx:] = 0
-    return img
+    ## <sigmoid activation>
+    sig_sub = cv2.gapi.subRC(0, unscaled)
+    sig_exp = cv2.gapi.exp(sig_sub, sig_sub)
+    gid_add = cv2.gapi.addC(1, sig_exp)
+    sigmoid = cv2.gapi.divRC(1, gid_add)
+    ## </sigmoid activation>
 
+    thresh   = cv2.gapi.threshold(sigmoid, 0.75, 1, cv2.THRESH_BINARY)
 
-def hologram_effect(img):
-    # add a blue tint
-    holo = cv2.applyColorMap(img.get(), cv2.COLORMAP_WINTER)
-    # add a halftone effect
-    band_length, band_gap = 2, 3
-    for y in range(holo.shape[0]):
-        if y % (band_length + band_gap) < band_length:
-            holo[y, :, :] = holo[y, :, :] * np.random.uniform(0.1, 0.3)
-    # add some ghosting
-    holo_blur = cv2.addWeighted(holo, 0.2, shift_image(holo.copy(), 5, 5), 0.8, 0)
-    holo_blur = cv2.addWeighted(holo_blur, 0.4, shift_image(holo.copy(), -5, -5), 0.6, 0)
-    # combine with the original color, oversaturated
-    out = cv2.addWeighted(img, 0.5, holo_blur, 0.6, 0)
-    return out
+    dilate = cv2.gapi.dilate(thresh, cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10)), iterations=1)
+    mask   = cv2.gapi.blur(dilate, (30, 30))
 
-
-def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: object = None, use_hologram: bool = False, height=0, width=0) -> object:
-    if not cap.grab():
-        print("ERROR: could not read from camera!")
-        return None
-
-    frame = cv2.UMat(cap.retrieve()[1])
-    mask = get_mask(frame, scaler, dilation, height=height, width=width)
-
+    ## <background>
     if background is None:
-        background = cv2.resize(frame, (int(width/8), int(height/8)))
-        background = cv2.GaussianBlur(background, (7, 7), sigmaX=20, sigmaY=20)
-        background = cv2.resize(background, (width, height))
+        small_bg = cv2.gapi.resize(g_in, 0, fx=1/8, fy=1/8)
+        blur_bg  = cv2.gapi.gaussianBlur(small_bg, (7, 7))
+        bg_in    = cv2.gapi.resize(blur_bg, g_in.size())
+    else:
+        bg_in = cv2.GMat()
+    ## </background>
 
-    if use_hologram:
-        frame = hologram_effect(frame)
+    ## <hologram>
+    # add a blue tint
+    # holo = cv2.applyColorMap(img.get(), cv2.COLORMAP_WINTER)
+    # # add a halftone effect
+    # band_length, band_gap = 2, 3
+    # for y in range(holo.shape[0]):
+    #     if y % (band_length + band_gap) < band_length:
+    #         holo[y, :, :] = holo[y, :, :] * np.random.uniform(0.1, 0.3)
+    # # add some ghosting
+    # holo_blur = cv2.addWeighted(holo, 0.2, shift_image(holo.copy(), 5, 5), 0.8, 0)
+    # holo_blur = cv2.addWeighted(holo_blur, 0.4, shift_image(holo.copy(), -5, -5), 0.6, 0)
+    # # combine with the original color, oversaturated
+    # out = cv2.addWeighted(img, 0.5, holo_blur, 0.6, 0)
+    ## </hologram>
 
-    # composite the foreground and background
-    mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    inv_mask     = cv2.gapi.subRC(1, mask)
+    frame_masked = cv2.gapi.mulC(g_in, mask)
+    bg_masked    = cv2.gapi.mul(bg_in, inv_mask)
 
-    inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
+    frame = cv2.gapi.add(frame_masked, bg_masked)
 
-    mask_mult = cv2.multiply(frame, mask, dtype=cv2.CV_32F)
-    inv_mask_mult = cv2.multiply(background, inv_mask, dtype=cv2.CV_32F)
+    if mirror is True:
+        return cv2.GComputation(cv2.GIn(g_in), cv2.GOut(cv2.gapi.flip(frame)))
 
-    frame = cv2.add(mask_mult, inv_mask_mult)
-    return frame
+    return cv2.GComputation(cv2.GIn(g_in), cv2.GOut(frame))
 
 
 def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
     sys.stdout = sys.__stdout__
-
-    if cv2.cuda.getCudaEnabledDeviceCount() > 0 and len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_CUDA)) > 0:
-        print("Using CUDA for DNN")
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-    elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
-        print("Using Vulkan for DNN")
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
-    elif cv2.ocl.haveOpenCL() and cv2.ocl_Device().type() == cv2.ocl.Device_TYPE_GPU:
-        print("Using OpenCL for DNN")
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
-
-    if cv2.ocl.haveOpenCL():
-        print("Using OpenCL for image manipulation")
-        cv2.ocl.setUseOpenCL(True)
 
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))
@@ -169,18 +136,21 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
         background_scaled = cv2.resize(background_data, (width, height))
 
     first_frame = True
+
+    pipeline = get_pipeline(background=background_scaled, use_hologram=use_hologram)
+
     # frames forever
     while True:
-        frame = get_frame(cap, scaler, ones, dilation, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
+        frame = cap.grab()
         if frame is None:
             print("ERROR: could not read from camera!")
             break
 
-        if use_mirror is True:
-            frame = cv2.flip(frame, 1)
-        # fake webcam expects RGB
-        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        fake.schedule_frame(frame)
+        if background_scaled is not None:
+            fake.schedule_frame(pipeline.apply(cv2.gin(cap.retrieve()[1], background_scaled)))
+        else:
+            fake.schedule_frame(pipeline.apply(cv2.gin(cap.retrieve()[1])))
+
         if command_queue is not None and not command_queue.empty():
             data = command_queue.get(False)
 
@@ -197,6 +167,8 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
 
             use_hologram = data["hologram"]
             use_mirror = data["mirror"]
+
+            pipeline = get_pipeline()
 
         if first_frame and return_queue is not None:
             first_frame = False
