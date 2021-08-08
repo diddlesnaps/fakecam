@@ -14,12 +14,47 @@ FHD = (1080, 1920)
 HD = (720, 1280)
 NTSC = (480, 720)
 
-
-cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
+cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'mobileNet/8/075/2/frozen_graph.pb'))
 
 output_stride = 16
 internal_resolution = 0.5
 multiplier = 0.5
+
+models = [
+    # mobileNet
+    "mobileNet/8/050/1/frozen_graph.pb",
+    "mobileNet/8/050/2/frozen_graph.pb",
+    "mobileNet/8/050/4/frozen_graph.pb",
+
+    "mobileNet/8/075/1/frozen_graph.pb",
+    "mobileNet/8/075/2/frozen_graph.pb",
+    "mobileNet/8/075/4/frozen_graph.pb",
+
+    "mobileNet/8/100/1/frozen_graph.pb",
+    "mobileNet/8/100/2/frozen_graph.pb",
+    "mobileNet/8/100/4/frozen_graph.pb",
+
+    "mobileNet/16/050/1/frozen_graph.pb",
+    "mobileNet/16/050/2/frozen_graph.pb",
+    "mobileNet/16/050/4/frozen_graph.pb",
+
+    "mobileNet/16/075/1/frozen_graph.pb",
+    "mobileNet/16/075/2/frozen_graph.pb",
+    "mobileNet/16/075/4/frozen_graph.pb",
+
+    "mobileNet/16/100/1/frozen_graph.pb",
+    "mobileNet/16/100/2/frozen_graph.pb",
+    "mobileNet/16/100/4/frozen_graph.pb",
+
+    # resNet
+    "resNet/16/100/1/frozen_graph.pb",
+    "resNet/16/100/2/frozen_graph.pb",
+    "resNet/16/100/4/frozen_graph.pb",
+
+    "resNet/32/100/1/frozen_graph.pb",
+    "resNet/32/100/2/frozen_graph.pb",
+    "resNet/32/100/4/frozen_graph.pb",
+]
 
 
 def get_mask(frame, scaler, dilation, height, width):
@@ -99,28 +134,33 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
 
 
 def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
-          use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
+          use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None, model: str = ""):
 
     msg = ""
-    if cv2.cuda.getCudaEnabledDeviceCount() > 0 and len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_CUDA)) > 0:
-        msg += "Using CUDA for DNN\n"
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-    elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
-        msg += "Using Vulkan for DNN\n"
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
-    elif cv2.ocl.haveOpenCL() and cv2.ocl_Device().type() == cv2.ocl.Device_TYPE_GPU:
-        msg += "Using OpenCL for DNN\n"
-        cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
+    try:
+        if cv2.cuda.getCudaEnabledDeviceCount() > 0 and len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_CUDA)) > 0:
+            msg += "Using CUDA for DNN\n"
+            cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+        elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
+            msg += "Using Vulkan for DNN\n"
+            cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
+            cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
+    except cv2.error:
+        if cv2.ocl.haveOpenCL() and cv2.ocl_Device().type() == cv2.ocl.Device_TYPE_GPU:
+            msg += "Using OpenCL for DNN\n"
+            cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+            cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
     if cv2.ocl.haveOpenCL():
         msg += "Using OpenCL for image manipulation\n"
         cv2.ocl.setUseOpenCL(True)
 
     sys.stdout = sys.__stdout__
-    print (msg)
+    print(msg)
+
+    if model in models:
+        cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), model))
 
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))

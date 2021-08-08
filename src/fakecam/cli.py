@@ -19,9 +19,10 @@ def main():
     use_mirror = False
     camera = "/dev/video0"
     resolution = None
+    model = ""
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:r:b:mg", ["input=", "resolution=", "background=", "mirror", "hologram"])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:r:b:mg", ["input=", "resolution=", "background=", "mirror", "hologram", "model="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -41,6 +42,8 @@ def main():
             use_mirror = True
         elif opt in ("-g", "--hologram"):
             use_hologram = True
+        elif opt in ("--model"):
+            model = arg
 
     if not os.access(camera, os.R_OK):
         print(lang.CONNECT_INTERFACE + "\n\nIf you have multiple camera devices in /dev/video* then you may specify "
@@ -49,6 +52,12 @@ def main():
     if not os.access("/dev/video20", os.W_OK):
         print(lang.INSTRUCTIONS)
         sys.exit(3)
+
+    if not model in capture.models:
+        print("The selected model is not available. Please choose one from the following list:\n")
+        for m in capture.models:
+            print("    {m}".format(m=m))
+        sys.exit(4)
 
     if use_hologram:
         print(lang.USING_HOLOGRAM)
@@ -75,6 +84,7 @@ def main():
         "resolution": resolution,
         "use_hologram": use_hologram,
         "use_mirror": use_mirror,
+        "model": model,
     }
     p = multiprocessing.Process(target=capture.start, kwargs=args)
     try:
