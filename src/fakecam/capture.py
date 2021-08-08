@@ -16,8 +16,6 @@ NTSC = (480, 720)
 
 
 cvNet = cv2.dnn.readNetFromTensorflow(os.path.join(os.path.dirname(__file__), 'frozen_graph.pb'))
-cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
 output_stride = 16
 internal_resolution = 0.5
@@ -102,24 +100,27 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
 
 def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[bool]" = None, camera: str = "/dev/video0", background: str = None,
           use_hologram: bool = False, use_mirror: bool = False, resolution: Tuple[int,int] = None):
-    sys.stdout = sys.__stdout__
 
+    msg = ""
     if cv2.cuda.getCudaEnabledDeviceCount() > 0 and len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_CUDA)) > 0:
-        print("Using CUDA for DNN")
+        msg += "Using CUDA for DNN\n"
         cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
         cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
     elif len(cv2.dnn.getAvailableTargets(cv2.dnn.DNN_BACKEND_VKCOM)) > 0:
-        print("Using Vulkan for DNN")
+        msg += "Using Vulkan for DNN\n"
         cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_VKCOM)
         cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_VULKAN)
     elif cv2.ocl.haveOpenCL() and cv2.ocl_Device().type() == cv2.ocl.Device_TYPE_GPU:
-        print("Using OpenCL for DNN")
+        msg += "Using OpenCL for DNN\n"
         cvNet.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
         cvNet.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
     if cv2.ocl.haveOpenCL():
-        print("Using OpenCL for image manipulation")
+        msg += "Using OpenCL for image manipulation\n"
         cv2.ocl.setUseOpenCL(True)
+
+    sys.stdout = sys.__stdout__
+    print (msg)
 
     # setup access to the *real* webcam
     print("Starting capture using device: {camera}".format(camera=camera))

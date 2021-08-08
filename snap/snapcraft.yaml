@@ -147,7 +147,7 @@ parts:
       - -DWITH_GSTREAMER=ON
       - -DWITH_OPENGL=ON
       - -DWITH_VULKAN=ON
-      - -DWITH_CUDA=ON
+      # - -DWITH_CUDA=ON
       # - -DCUDA_HOST_COMPILER=/usr/bin/gcc-6
       # - '"-DCUDA_ARCH_BIN=5.0"'
       # - '"-DCUDA_ARCH_PTX=3.5"'
@@ -170,7 +170,7 @@ parts:
       - -DMKL_WITH_TBB=ON
       - -DWITH_TBB=ON
       - -DWITH_IPP=ON
-      - -DWITH_INF_ENGINE=ON
+      # - -DWITH_INF_ENGINE=ON
       - -DWITH_NGRAPH=ON
     build-snaps:
       - cmake
