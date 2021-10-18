@@ -1,5 +1,8 @@
 name: fakecam
 adopt-info: fakecam
+issues: https://github.com/diddlesnaps/fakecam/issues
+source-code: https://github.com/diddlesnaps/fakecam.git
+donation: https://liberapay.com/diddledani
 summary: Fakecam
 description: |
   Fake background removing camera for streaming and video
