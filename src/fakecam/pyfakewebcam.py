@@ -49,8 +49,12 @@ class FakeWebcam:
         #                           [-0.168736, -0.331264, 0.5, 128],
         #                           [0.5, -0.418688, -0.081312, 128]])
 
-        if fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings) < 0:
-            print("ERROR: unable to set video format!")
+        try:
+            fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings)
+        except OSError as err:
+            print("ERROR: unable to set video format: {err}".format(err=err))
+            os.close(self._video_device)
+            exit(1)
 
 
     def print_capabilities(self):
@@ -89,5 +93,8 @@ class FakeWebcam:
         written = os.write(self._video_device, buf)
         if written < 0:
             print("ERROR: could not write to output device!")
-            os.close(self._video_device)
+            self.close()
             sys.exit(1)
+
+    def close(self):
+        os.close(self._video_device)

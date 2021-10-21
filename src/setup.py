@@ -13,12 +13,44 @@ setup(
     package_data={"fakecam": [
         "ui/fakecam.glade",
         "ui/hologram.png",
-        "frozen_graph.pb",
         "LICENSE",
+
+        # mobileNet
+        "mobileNet/8/050/1/frozen_graph.pb",
+        "mobileNet/8/050/2/frozen_graph.pb",
+        "mobileNet/8/050/4/frozen_graph.pb",
+
+        "mobileNet/8/075/1/frozen_graph.pb",
+        "mobileNet/8/075/2/frozen_graph.pb",
+        "mobileNet/8/075/4/frozen_graph.pb",
+
+        "mobileNet/8/100/1/frozen_graph.pb",
+        "mobileNet/8/100/2/frozen_graph.pb",
+        "mobileNet/8/100/4/frozen_graph.pb",
+
+        "mobileNet/16/050/1/frozen_graph.pb",
+        "mobileNet/16/050/2/frozen_graph.pb",
+        "mobileNet/16/050/4/frozen_graph.pb",
+
+        "mobileNet/16/075/1/frozen_graph.pb",
+        "mobileNet/16/075/2/frozen_graph.pb",
+        "mobileNet/16/075/4/frozen_graph.pb",
+
+        "mobileNet/16/100/1/frozen_graph.pb",
+        "mobileNet/16/100/2/frozen_graph.pb",
+        "mobileNet/16/100/4/frozen_graph.pb",
+
+        # resNet
+        "resNet/16/100/1/frozen_graph.pb",
+        "resNet/16/100/2/frozen_graph.pb",
+        "resNet/16/100/4/frozen_graph.pb",
+
+        "resNet/32/100/1/frozen_graph.pb",
+        "resNet/32/100/2/frozen_graph.pb",
+        "resNet/32/100/4/frozen_graph.pb",
     ]},
     install_requires=[
         "numpy==1.19.5",
-        # "opencv-python==4.2.0.32",
         "requests==2.25.1",
         "pyfakewebcam==0.1.0",
         "pycairo==1.20.0",

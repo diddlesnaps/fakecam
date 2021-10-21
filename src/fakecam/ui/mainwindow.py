@@ -243,6 +243,7 @@ class MainWindow:
                 background=self.background,
                 hologram=self.use_hologram,
                 mirror=self.use_mirror,
+                quit=False,
             ))
 
     def on_reset_background(self, widget, *args):
@@ -304,13 +305,13 @@ class MainWindow:
         self.stop()
 
         args = {
-            "camera": self.camera,
             "background": self.background,
+            "camera": self.camera,
+            "command_queue": self.command_queue,
+            "resolution": self.resolution,
+            "return_queue": self.return_queue,
             "use_hologram": self.use_hologram,
             "use_mirror": self.use_mirror,
-            "command_queue": self.command_queue,
-            "return_queue": self.return_queue,
-            "resolution": self.resolution,
         }
         p = multiprocessing.Process(target=capture.start, kwargs=args)
         p.start()
@@ -400,6 +401,9 @@ class MainWindow:
         self.pipeline = None
 
         if self.p is not None:
+            self.command_queue.put(CommandQueueDict(
+                quit=True,
+            ))
             self.p.terminate()
             self.p.join()
             self.p = None
