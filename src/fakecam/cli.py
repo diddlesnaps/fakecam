@@ -15,11 +15,12 @@ def main():
     background = None
     use_hologram = False
     use_mirror = False
-    camera = "/dev/video0"
+    camera_input = "/dev/video0"
+    camera_output = "/dev/video20"
     resolution = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:r:b:mg", ["input=", "resolution=", "background=", "mirror", "hologram"])
+        opts, args = getopt.getopt(sys.argv[1:], "hi:o:r:b:mg", ["input=", "output=", "resolution=", "background=", "mirror", "hologram"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -29,7 +30,9 @@ def main():
             usage()
             sys.exit()
         elif opt in ("-i", "--input"):
-            camera = arg
+            camera_input = arg
+        elif opt in ("-o", "--output"):
+            camera_output = arg
         elif opt in ("-r", "--resolution"):
             res = str.split(arg, 'x', 2)
             resolution = (int(res[0]), int(res[1]))
@@ -40,11 +43,11 @@ def main():
         elif opt in ("-g", "--hologram"):
             use_hologram = True
 
-    if not os.access(camera, os.R_OK):
+    if not os.access(camera_input, os.R_OK):
         print(lang.CONNECT_INTERFACE + "\n\nIf you have multiple camera devices in /dev/video* then you may specify "
                                        "the correct device with the '-i' or '--input' parameter.\n")
 
-    if not os.access("/dev/video20", os.W_OK):
+    if not os.access(camera_output, os.W_OK):
         print(lang.INSTRUCTIONS)
         sys.exit(3)
 
@@ -65,7 +68,8 @@ def main():
         background = None
 
     args = {
-        "camera": camera,
+        "camera_input": camera_input,
+        "camera_output": camera_output,
         "background": background,
         "use_hologram": use_hologram,
         "use_mirror": use_mirror,
