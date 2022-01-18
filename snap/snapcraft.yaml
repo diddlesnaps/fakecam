@@ -354,7 +354,7 @@ parts:
       #!/bin/bash
 
       # Set the CUDA library locations to be searched by the linker
-      CUDA_PATH="$(ls -d $SNAP/opencv/usr/local/cuda-* 2>/dev/null | tail -n1)"
+      CUDA_PATH="$(ls -d $SNAP/usr/local/cuda-* 2>/dev/null | tail -n1)"
       if [ -n "$CUDA_PATH" ]; then
         export LD_LIBRARY_PATH="$CUDA_PATH/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       fi
@@ -372,7 +372,12 @@ parts:
       fi
 
       # export PYTHONPATH=$SNAP/usr/lib/python3.8:$SNAP/lib/python3.8
-      export LD_LIBRARY_PATH=/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:/usr/lib:/lib/$SNAPCRAFT_ARCH_TRIPLET:/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}:$SNAP/cuda-11.2/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/cuda-11.2/local/cuda-11.2/lib64
+
+      # As discussed here:
+      #  - https://forum.snapcraft.io/t/egl-using-snaps-on-impish-seem-to-be-broken-when-using-the-nvidia-proprietary-driver/25715
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH#$SNAP_LIBRARY_PATH:}"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${SNAP_LIBRARY_PATH}"
+
       exec "$@"
       EOF
     override-build: |
