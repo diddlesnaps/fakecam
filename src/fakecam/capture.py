@@ -66,9 +66,11 @@ def get_mask(frame, scaler, dilation, height, width):
     results = cvNet.forward()[0][0]
 
     segment_logits = cv2.UMat(results)
+    segment_logits.flags.writable = False
     scaled_segment_scores = scaler.scale_and_crop_to_input_tensor_shape(
         segment_logits, True
     )
+    scaled_segment_scores.flags.writable = False
     mask = to_mask_tensor(scaled_segment_scores, 0.75)
     mask = cv2.dilate(mask, dilation, iterations=1)
     mask = cv2.blur(mask, (30, 30))
@@ -111,6 +113,8 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
         return None
 
     frame = cv2.UMat(cap.retrieve()[1])
+    frame.flags.writable = False
+
     mask = get_mask(frame, scaler, dilation, height=height, width=width)
 
     if background is None:
@@ -119,16 +123,22 @@ def get_frame(cap: object, scaler: BodypixScaler, ones, dilation, background: ob
         background = cv2.resize(background, (width, height))
 
     if use_hologram:
+        frame.flags.writable = True
         frame = hologram_effect(frame)
+        frame.flags.writable = False
 
     # composite the foreground and background
     mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    mask.flags.writable = False
 
     inv_mask = cv2.subtract(ones, mask, dtype=cv2.CV_32F)
 
     mask_mult = cv2.multiply(frame, mask, dtype=cv2.CV_32F)
     inv_mask_mult = cv2.multiply(background, inv_mask, dtype=cv2.CV_32F)
+    mask_mult.flags.writable = False
+    inv_mask_mult.flags.writable = False
 
+    frame.flags.writable = True
     frame = cv2.add(mask_mult, inv_mask_mult)
     return frame
 
@@ -186,7 +196,9 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
 
     scaler = BodypixScaler(width, height)
     ones = cv2.UMat(np.ones((height, width, 3)))
+    ones.flags.writable = False
     dilation = cv2.UMat(np.ones((10, 10), np.uint8))
+    dilation.flags.writable = False
 
     # for (height, width) in [FHD, HD, NTSC, (orig_height, orig_width)]:
     #     # Attempt to set the camera resolution via brute force
@@ -203,15 +215,19 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
     greenscreen_array = np.zeros((height, width, 3), np.uint8)
     greenscreen_array[:] = (0, 177, 64)
     greenscreen_image = cv2.UMat(greenscreen_array)
+    greenscreen_image.flags.writable = False
+
     if background == "greenscreen":
         background_scaled = greenscreen_image
     elif background is not None and os.path.isfile(background) and os.access(background, os.R_OK):
         background_data = cv2.UMat(cv2.imread(background))
         background_scaled = cv2.resize(background_data, (width, height))
 
+    background_scaled.flags.writable = False
+
     first_frame = True
     # frames forever
-    while True:
+    while cap.isOpened():
         frame = get_frame(cap, scaler, ones, dilation, background=background_scaled, use_hologram=use_hologram, height=height, width=width)
         if frame is None:
             print("ERROR: could not read from camera!")
@@ -227,7 +243,9 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
 
             if data["quit"]:
                 break
-            elif data["background"] is None:
+
+            background_scaled.flags.writable = True
+            if data["background"] is None:
                 background_scaled = None
             elif data["background"] == "greenscreen":
                 background_scaled = greenscreen_image
@@ -235,6 +253,7 @@ def start(command_queue: "Queue[CommandQueueDict]" = None, return_queue: "Queue[
                 background = data["background"]
                 background_data = cv2.UMat(cv2.imread(background))
                 background_scaled = cv2.resize(background_data, (width, height))
+            background_scaled.flags.writable = False
 
             use_hologram = data["hologram"]
             use_mirror = data["mirror"]
