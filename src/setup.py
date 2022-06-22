@@ -17,7 +17,7 @@ setup(
         "LICENSE",
     ]},
     install_requires=[
-        "numpy==1.19.5",
+        "numpy==1.22.0",
         # "opencv-python==4.2.0.32",
         "requests==2.25.1",
         "pyfakewebcam==0.1.0",
